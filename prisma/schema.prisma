@@ -62,6 +62,7 @@ model Employee {
   timeEntries     TimeEntry[]
   sickLeaves      SickLeave[]
   workPlans       WorkPlan[]
+  shifts          Shift[]
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 }
@@ -79,6 +80,7 @@ model EmployeeGroup {
   defaultWageType  WageType     @default(HOURLY)
   salaryCode       String       @unique
   employees        Employee[]   @relation("EmployeeToGroup")
+  shifts           Shift[]
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 }
@@ -160,6 +162,26 @@ model Break {
   updatedAt   DateTime @updatedAt
 }
 
+model Shift {
+  id              String      @id @default(cuid())
+  date            DateTime
+  startTime       String    
+  endTime         String   
+  employee        Employee?   @relation(fields: [employeeId], references: [id])
+  employeeId      String?
+  employeeGroup   EmployeeGroup? @relation(fields: [employeeGroupId], references: [id])
+  employeeGroupId String?
+  shiftType       ShiftType
+  breakStart      DateTime?   
+  breakEnd        DateTime?
+  wage            Float
+  wageType        WageType    @default(HOURLY)
+  note            String?
+  approved        Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
 enum Role {
   ADMIN
   HR_ADMIN
@@ -173,3 +195,14 @@ enum Sex {
   FEMALE
   OTHER
 }
+
+enum ShiftType {
+  NORMAL
+  ABSENT
+  ARRIVED_LATE
+  MEETING
+  SICK
+  TIME_OFF
+  TRAINING
+}
+

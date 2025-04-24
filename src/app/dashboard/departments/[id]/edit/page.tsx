@@ -16,7 +16,7 @@ interface Department {
   country: string
 }
 
-export default function EditDepartmentPage({ params }: { params: { id: string } }) {
+export default function EditDepartmentPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const departmentId = React.use(params).id
   const [department, setDepartment] = useState<Department | null>(null)

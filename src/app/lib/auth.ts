@@ -6,7 +6,7 @@ import { cookies } from 'next/headers'
 
 export async function getCurrentUser() {
   const store = await cookies() 
-  const token = store.get('token')?.value
+  const token = store.get('auth-token')?.value
   console.log('Cookies:', store.getAll()); // Log all cookies
   console.log('Token:', token);
 
