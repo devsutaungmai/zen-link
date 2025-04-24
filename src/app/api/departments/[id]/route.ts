@@ -6,7 +6,7 @@ export async function GET(
   context: { params: { id: string } }
 ) {
   try {
-    const { id } = await context.params
+    const { id } =  context.params
     const department = await prisma.department.findUnique({
       where: { id },
       include: {
