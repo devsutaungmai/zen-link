@@ -2,7 +2,14 @@
 
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { PlusIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
+import { 
+  PlusIcon, 
+  PencilIcon, 
+  TrashIcon, 
+  MagnifyingGlassIcon,
+  ArrowsRightLeftIcon,
+  ClockIcon
+} from '@heroicons/react/24/outline'
 import Swal from 'sweetalert2'
 
 interface Shift {
@@ -23,14 +30,32 @@ interface Shift {
   }
 }
 
+interface EmployeeOption {
+  id: string
+  firstName: string
+  lastName: string
+}
+
 export default function ShiftsPage() {
   const [shifts, setShifts] = useState<Shift[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [employees, setEmployees] = useState<EmployeeOption[]>([])
 
   useEffect(() => {
     fetchShifts()
+    fetchEmployees()
   }, [])
+
+  const fetchEmployees = async () => {
+    try {
+      const res = await fetch('/api/employees')
+      const data = await res.json()
+      setEmployees(data)
+    } catch (error) {
+      console.error('Error fetching employees:', error)
+    }
+  }
 
   const fetchShifts = async () => {
     try {
@@ -83,6 +108,90 @@ export default function ShiftsPage() {
         icon: 'error',
         confirmButtonColor: '#31BCFF',
       })
+    }
+  }
+
+  const handleExchange = async (shift: Shift) => {
+    // Build options for select input
+    const optionsHtml = employees
+      .map(emp => `<option value="${emp.id}">${emp.firstName} ${emp.lastName}</option>`)
+      .join('')
+
+    const { value: employeeId } = await Swal.fire({
+      title: 'Exchange Shift',
+      html: `
+        <label for="employee-select" style="display:block;text-align:left;margin-bottom:8px;">Select the new employee</label>
+        <select id="employee-select" class="swal2-input" style="width:100%">
+          <option value="">Select employee</option>
+          ${optionsHtml}
+        </select>
+      `,
+      focusConfirm: false,
+      preConfirm: () => {
+        const select = (document.getElementById('employee-select') as HTMLSelectElement)
+        return select.value
+      },
+      showCancelButton: true,
+      confirmButtonColor: '#31BCFF',
+    })
+
+    if (employeeId) {
+      try {
+        const res = await fetch(`/api/shifts/${shift.id}/exchange`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newEmployeeId: employeeId }),
+        })
+        if (res.ok) {
+          await Swal.fire('Success', 'Shift exchanged successfully!', 'success')
+          fetchShifts()
+        } else {
+          throw new Error('Failed to exchange shift')
+        }
+      } catch (error) {
+        await Swal.fire('Error', 'Failed to exchange shift.', 'error')
+      }
+    }
+  }
+
+  const handleViewHistory = async (shiftId: string) => {
+    try {
+      const res = await fetch(`/api/shifts/${shiftId}/exchanges`)
+      
+      if (!res.ok) {
+        throw new Error('Failed to fetch exchange history')
+      }
+      
+      const exchanges = await res.json()
+      
+      if (exchanges.length === 0) {
+        await Swal.fire({
+          title: 'No History',
+          text: 'This shift has no exchange history.',
+          icon: 'info',
+          confirmButtonColor: '#31BCFF',
+        })
+        return
+      }
+      
+      // Format the exchange history for display
+      const historyHtml = exchanges.map((exchange: any) => `
+        <div class="border-b pb-2 mb-2">
+          <p><strong>From:</strong> ${exchange.fromEmployee.firstName} ${exchange.fromEmployee.lastName}</p>
+          <p><strong>To:</strong> ${exchange.toEmployee.firstName} ${exchange.toEmployee.lastName}</p>
+          <p><strong>Date:</strong> ${new Date(exchange.exchangedAt).toLocaleString()}</p>
+        </div>
+      `).join('')
+      
+      await Swal.fire({
+        title: 'Shift Exchange History',
+        html: `<div class="text-left">${historyHtml}</div>`,
+        confirmButtonColor: '#31BCFF',
+        width: 600,
+      })
+    } catch (error) {
+      console.error('Error fetching exchange history:', error)
+      await Swal.fire('Error', 'Failed to load exchange history.', 'error')
     }
   }
 
@@ -188,6 +297,20 @@ export default function ShiftsPage() {
                           className="text-red-600 hover:text-red-900"
                         >
                           <TrashIcon className="h-5 w-5 mt-3" />
+                        </button>
+                        <button
+                          onClick={() => handleExchange(shift)}
+                          className="text-indigo-600 hover:text-indigo-900"
+                          title="Exchange Shift"
+                        >
+                          <ArrowsRightLeftIcon className="h-5 w-5 mt-3" />
+                        </button>
+                        <button
+                          onClick={() => handleViewHistory(shift.id)}
+                          className="text-amber-600 hover:text-amber-900"
+                          title="View Exchange History"
+                        >
+                          <ClockIcon className="h-5 w-5 mt-3" />
                         </button>
                       </td>
                     </tr>

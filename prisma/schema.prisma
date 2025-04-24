@@ -47,14 +47,15 @@ model Employee {
   employeeGroupId String?
   firstName       String
   lastName        String
+  email           String?   @unique
   birthday        DateTime
   sex             Sex
-  socialSecurityNo String    @unique
+  socialSecurityNo String?    @unique
   address         String
   mobile          String
-  employeeNo      String     @unique
+  employeeNo      String?     @unique
   bankAccount     String
-  hoursPerMonth   Float
+  hoursPerMonth   Float?
   dateOfHire      DateTime
   isTeamLeader    Boolean    @default(false)
   department      Department @relation(fields: [departmentId], references: [id])
@@ -63,6 +64,8 @@ model Employee {
   sickLeaves      SickLeave[]
   workPlans       WorkPlan[]
   shifts          Shift[]
+  fromShiftExchanges ShiftExchange[] @relation("FromEmployee")
+  toShiftExchanges   ShiftExchange[] @relation("ToEmployee")
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 }
@@ -180,6 +183,18 @@ model Shift {
   approved        Boolean     @default(false)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
+  shiftExchanges  ShiftExchange[]
+}
+
+model ShiftExchange {
+  id             String   @id @default(cuid())
+  shift          Shift    @relation(fields: [shiftId], references: [id])
+  shiftId        String
+  fromEmployee   Employee @relation("FromEmployee", fields: [fromEmployeeId], references: [id])
+  fromEmployeeId String
+  toEmployee     Employee @relation("ToEmployee", fields: [toEmployeeId], references: [id])
+  toEmployeeId   String
+  exchangedAt    DateTime @default(now())
 }
 
 enum Role {
