@@ -6,7 +6,7 @@ import { cookies } from 'next/headers'
 
 export async function getCurrentUser() {
   const store = await cookies() 
-  const token = store.get('auth-token')?.value
+  const token = store.get('token')?.value
   console.log('Cookies:', store.getAll()); // Log all cookies
   console.log('Token:', token);
 
@@ -16,19 +16,10 @@ export async function getCurrentUser() {
     const decoded = verify(token, process.env.JWT_SECRET!) as {
       id: string
       role: string
-      employeeId?: string
     }
 
     return await prisma.user.findUnique({
       where: { id: decoded.id },
-      include: { 
-        employee: {
-          include: {
-            department: true,
-            employeeGroup: true
-          }
-        } 
-      }
     })
   } catch (error) {
     return null

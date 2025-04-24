@@ -6,7 +6,7 @@ export async function POST() {
     { status: 200 }
   )
   
-  response.cookies.delete('auth-token')
+  response.cookies.delete('token')
   
   return response
 }

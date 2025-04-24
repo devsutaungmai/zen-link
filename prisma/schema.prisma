@@ -23,7 +23,7 @@ model User {
   role       String    @default("USER")
   businessId String
   business   Business  @relation(fields: [businessId], references: [id])
-  employee   Employee?
+  employees Employee[]
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 }
@@ -42,9 +42,9 @@ model Business {
 model Employee {
   id              String     @id @default(cuid())
   user            User       @relation(fields: [userId], references: [id])
-  userId          String     @unique
-  employeeGroup     EmployeeGroup? @relation("EmployeeToGroup", fields: [employeeGroupId], references: [id])
-  employeeGroupId   String?
+  userId          String 
+  employeeGroup   EmployeeGroup? @relation("EmployeeToGroup", fields: [employeeGroupId], references: [id])
+  employeeGroupId String?
   firstName       String
   lastName        String
   birthday        DateTime

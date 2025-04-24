@@ -3,7 +3,7 @@ import { prisma } from '@/app/lib/prisma'
 
 export async function GET(request: NextRequest, context: { params: { id: string } }) {
   try {
-    const { id } = await context.params
+    const { id } =  context.params
     const employeeGroup = await prisma.employeeGroup.findUnique({
       where: { id },
       include: {
