@@ -1,6 +1,7 @@
 import { prisma } from '@/app/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { NextResponse } from 'next/server'
+import jwt from 'jsonwebtoken'
 
 export async function POST(req: Request) {
   try {
@@ -27,7 +28,6 @@ export async function POST(req: Request) {
 
     const hashedPassword = await bcrypt.hash(user.password, 10)
 
-    // Use transaction to ensure both operations succeed or fail together
     const result = await prisma.$transaction(async (tx) => {
       const newBusiness = await tx.business.create({
         data: {
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
       return { newUser, newBusiness }
     })
 
-    return NextResponse.json({ 
+    const res = NextResponse.json({ 
       success: true,
       user: {
         id: result.newUser.id,
@@ -62,6 +62,29 @@ export async function POST(req: Request) {
         role: result.newUser.role
       }
     })
+
+    const token = jwt.sign(
+      { 
+        id: user.id, 
+        role: user.role,
+      }, 
+      process.env.JWT_SECRET!,
+      { expiresIn: '7d' }
+    )
+
+    res.cookies.set(
+      'token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+        path: '/',
+        sameSite: 'strict'
+      })
+
+    console.log('Cookie set:', { token, env: process.env.NODE_ENV });
+
+    return res
+
   } catch (error: any) {
     console.error('Registration error:', error)
 

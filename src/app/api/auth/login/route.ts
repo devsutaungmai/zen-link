@@ -14,14 +14,6 @@ export async function POST(req: Request) {
 
   const user = await prisma.user.findUnique({
     where: { email },
-    include: {
-      employee: {
-        include: {
-          department: true,
-          employeeGroup: true
-        }
-      }
-    }
   })
 
   if (!user) {
@@ -37,8 +29,6 @@ export async function POST(req: Request) {
     { 
       id: user.id, 
       role: user.role,
-      employeeId: user.employee?.id,
-      department: user.employee?.department?.name,
     }, 
     process.env.JWT_SECRET!,
     { expiresIn: '7d' }
@@ -52,12 +42,6 @@ export async function POST(req: Request) {
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
-      employee: user.employee ? {
-        id: user.employee.id,
-        employeeNo: user.employee.employeeNo,
-        department: user.employee.department,
-        employeeGroup: user.employee.employeeGroup
-      } : null
     }
   })
 

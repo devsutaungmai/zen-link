@@ -16,19 +16,10 @@ export async function getCurrentUser() {
     const decoded = verify(token, process.env.JWT_SECRET!) as {
       id: string
       role: string
-      employeeId?: string
     }
 
     return await prisma.user.findUnique({
       where: { id: decoded.id },
-      include: { 
-        employee: {
-          include: {
-            department: true,
-            employeeGroup: true
-          }
-        } 
-      }
     })
   } catch (error) {
     return null
