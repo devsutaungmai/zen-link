@@ -25,8 +25,8 @@ const navigation = [
     children: [
       { name: 'Departments', href: '/dashboard/departments' },
       { name: 'Empoloyees', href: '/dashboard/departments' },
-      { name: 'Empoloyees Groups', href: '/dashboard/departments' },
-      { name: 'Contracts', href: '/dashboard/departments' },
+      { name: 'Empoloyees Groups', href: '/dashboard/employee-groups' },
+      { name: 'Contracts', href: '/dashboard/employees' },
       { name: 'Documents', href: '/dashboard/departments' },
     ],
   },

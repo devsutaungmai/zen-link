@@ -13,7 +13,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model User {
   id         String    @id @default(cuid())
   email      String    @unique
@@ -44,6 +43,8 @@ model Employee {
   id              String     @id @default(cuid())
   user            User       @relation(fields: [userId], references: [id])
   userId          String     @unique
+  employeeGroup     EmployeeGroup? @relation("EmployeeToGroup", fields: [employeeGroupId], references: [id])
+  employeeGroupId   String?
   firstName       String
   lastName        String
   birthday        DateTime
@@ -63,6 +64,23 @@ model Employee {
   workPlans       WorkPlan[]
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
+}
+
+enum WageType {
+  HOURLY
+  PER_SHIFT
+}
+
+model EmployeeGroup {
+  id               String       @id @default(cuid())
+  name             String       @unique
+  hourlyWage       Float
+  wagePerShift     Float
+  defaultWageType  WageType     @default(HOURLY)
+  salaryCode       String       @unique
+  employees        Employee[]   @relation("EmployeeToGroup")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 }
 
 model Department {
