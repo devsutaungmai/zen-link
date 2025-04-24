@@ -97,7 +97,7 @@ export default function CreateEmployeePage() {
               </button>
             ) : (
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => {}}
                 className="w-full px-4 py-2 text-sm font-medium text-white bg-[#31BCFF] rounded-md hover:bg-[#31BCFF]/90"
               >
                 Try Again

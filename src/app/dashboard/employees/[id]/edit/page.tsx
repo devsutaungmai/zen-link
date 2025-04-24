@@ -93,7 +93,7 @@ export default function EditEmployeePage({ params }: { params: Promise<{ id: str
               Back to Employees
             </button>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => {}}
               className="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
             >
               Try Again

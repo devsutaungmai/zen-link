@@ -15,7 +15,7 @@ interface EmployeeGroup {
 }
 
 export default function EditEmployeeGroupPage({ params }: { params: Promise<{ id: string }> }) {
-  const employeeGroupId = React.use(params)
+  const employeeGroupId = React.use(params).id
   const router = useRouter()
   const [employeeGroup, setEmployeeGroup] = useState<EmployeeGroup | null>(null)
   const [loading, setLoading] = useState(true)
@@ -23,8 +23,6 @@ export default function EditEmployeeGroupPage({ params }: { params: Promise<{ id
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!employeeGroupId) return
-
     const fetchEmployeeGroup = async () => {
       try {
         const res = await fetch(`/api/employee-groups/${employeeGroupId}`)

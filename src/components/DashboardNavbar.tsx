@@ -11,7 +11,8 @@ import {
   UserGroupIcon,
   Cog6ToothIcon,
   Bars3Icon,
-  XMarkIcon
+  XMarkIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@/app/lib/useUser'
@@ -24,10 +25,17 @@ const navigation = [
     icon: UserGroupIcon,
     children: [
       { name: 'Departments', href: '/dashboard/departments' },
-      { name: 'Empoloyees', href: '/dashboard/departments' },
+      { name: 'Empoloyees', href: '/dashboard/employees' },
       { name: 'Empoloyees Groups', href: '/dashboard/employee-groups' },
       { name: 'Contracts', href: '/dashboard/employees' },
       { name: 'Documents', href: '/dashboard/departments' },
+    ],
+  },
+  {
+    name: 'Schedule',
+    icon: ClockIcon,
+    children: [
+      { name: 'Shift', href: '/dashboard/shifts' },
     ],
   },
   { name: 'Settings', href: '/dashboard/settings', icon: Cog6ToothIcon },
