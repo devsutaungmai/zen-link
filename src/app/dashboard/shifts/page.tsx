@@ -142,13 +142,31 @@ export default function ShiftsPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ newEmployeeId: employeeId }),
         })
+        
         if (res.ok) {
           await Swal.fire('Success', 'Shift exchanged successfully!', 'success')
           fetchShifts()
         } else {
-          throw new Error('Failed to exchange shift')
+          const errorData = await res.json()
+          
+          if (res.status === 409 && errorData.conflict) {
+            await Swal.fire({
+              title: 'Scheduling Conflict',
+              html: `
+                <div class="text-left">
+                  <p>${errorData.error}</p>
+                  <p class="mt-2"><strong>Conflicting shift time:</strong> ${errorData.conflict.time}</p>
+                </div>
+              `,
+              icon: 'warning',
+              confirmButtonColor: '#31BCFF'
+            })
+          } else {
+            throw new Error(errorData.error || 'Failed to exchange shift')
+          }
         }
       } catch (error) {
+        console.error('Error exchanging shift:', error)
         await Swal.fire('Error', 'Failed to exchange shift.', 'error')
       }
     }

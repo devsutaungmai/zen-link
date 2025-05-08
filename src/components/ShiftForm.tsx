@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { ShiftType, WageType } from '@prisma/client'
 
 interface ShiftFormData {
@@ -21,40 +21,48 @@ interface ShiftFormData {
 interface ShiftFormProps {
   initialData?: ShiftFormData
   onSubmit: (data: ShiftFormData) => void
+  onCancel: () => void
   loading: boolean
   employees: { id: string; firstName: string; lastName: string }[]
   employeeGroups: { id: string; name: string }[]
+  showEmployee?: boolean
+  showStartTime?: boolean
+  showDate?: boolean
 }
 
-export default function ShiftForm({ 
-  initialData, 
-  onSubmit, 
+export default function  ShiftForm({
+  initialData,
+  onSubmit,
+  onCancel,
   loading,
   employees,
-  employeeGroups
+  employeeGroups,
+  showEmployee = true,
+  showStartTime = true,
+  showDate = true,
 }: ShiftFormProps) {
   const today = new Date()
   const todayString = today.toISOString().split('T')[0]
-  
-  const [formData, setFormData] = React.useState<ShiftFormData>(() => {
+
+  const [formData, setFormData] = useState<ShiftFormData>(() => {
     return initialData || {
       date: todayString,
       startTime: '09:00',
       endTime: '17:00',
       shiftType: 'NORMAL',
-      wage: 0, 
+      wage: 0,
       wageType: 'HOURLY',
       approved: false,
       employeeId: undefined,
       employeeGroupId: undefined,
       breakStart: undefined,
       breakEnd: undefined,
-      note: undefined
+      note: undefined,
     }
   })
 
-  const [showBreakFields, setShowBreakFields] = React.useState<boolean>(() => {
-    return initialData ? (!!initialData.breakStart || !!initialData.breakEnd) : false
+  const [showBreakFields, setShowBreakFields] = useState<boolean>(() => {
+    return initialData ? !!initialData.breakStart || !!initialData.breakEnd : false
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -65,18 +73,18 @@ export default function ShiftForm({
   const toggleBreakFields = () => {
     const newShowBreakFields = !showBreakFields
     setShowBreakFields(newShowBreakFields)
-    
+
     if (!newShowBreakFields) {
       setFormData({
         ...formData,
         breakStart: undefined,
-        breakEnd: undefined
+        breakEnd: undefined,
       })
     } else {
       setFormData({
         ...formData,
         breakStart: '12:00',
-        breakEnd: '13:00'
+        breakEnd: '13:00',
       })
     }
   }
@@ -85,18 +93,20 @@ export default function ShiftForm({
     <form onSubmit={handleSubmit} className="space-y-8">
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         {/* Date */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Date <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="date"
-            value={formData.date}
-            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF]"
-            required
-          />
-        </div>
+        {showDate && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Date <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              value={formData.date}
+              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF]"
+              required
+            />
+          </div>
+        )}
 
         {/* Shift Type */}
         <div>
@@ -118,18 +128,20 @@ export default function ShiftForm({
         </div>
 
         {/* Start Time */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Start Time <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="time"
-            value={formData.startTime}
-            onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF]"
-            required
-          />
-        </div>
+        {showStartTime && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Start Time <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="time"
+              value={formData.startTime}
+              onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF]"
+              required
+            />
+          </div>
+        )}
 
         {/* End Time */}
         <div>
@@ -146,21 +158,23 @@ export default function ShiftForm({
         </div>
 
         {/* Employee */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Employee</label>
-          <select
-            value={formData.employeeId || ''}
-            onChange={(e) => setFormData({ ...formData, employeeId: e.target.value || undefined })}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF]"
-          >
-            <option value="">Select an employee</option>
-            {employees.map((employee) => (
-              <option key={employee.id} value={employee.id}>
-                {employee.firstName} {employee.lastName}
-              </option>
-            ))}
-          </select>
-        </div>
+        {showEmployee && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Employee</label>
+            <select
+              value={formData.employeeId || ''}
+              onChange={(e) => setFormData({ ...formData, employeeId: e.target.value || undefined })}
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF]"
+            >
+              <option value="">Select an employee</option>
+              {employees.map((employee) => (
+                <option key={employee.id} value={employee.id}>
+                  {employee.firstName} {employee.lastName}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Employee Group */}
         <div>
@@ -174,25 +188,6 @@ export default function ShiftForm({
             {employeeGroups.map((group) => (
               <option key={group.id} value={group.id}>
                 {group.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Wage Type */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Wage Type <span className="text-red-500">*</span>
-          </label>
-          <select
-            value={formData.wageType}
-            onChange={(e) => setFormData({ ...formData, wageType: e.target.value as WageType })}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF]"
-            required
-          >
-            {Object.values(WageType).map((type) => (
-              <option key={type} value={type}>
-                {type}
               </option>
             ))}
           </select>
@@ -246,7 +241,7 @@ export default function ShiftForm({
       <div className="flex justify-end gap-3 pt-4">
         <button
           type="button"
-          onClick={() => {}}
+          onClick={onCancel}
           className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#31BCFF]"
         >
           Cancel

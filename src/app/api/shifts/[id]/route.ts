@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/app/lib/prisma'
 import { ShiftType, WageType } from '@prisma/client'
 
-// GET a single shift by ID
 export async function GET(
   request: NextRequest,
   context: { params: { id: string } }
@@ -33,7 +32,6 @@ export async function GET(
   }
 }
 
-// UPDATE an existing shift
 export async function PUT(
   request: NextRequest,
   context: { params: { id: string } }
@@ -76,7 +74,6 @@ export async function PUT(
   }
 }
 
-// DELETE a shift
 export async function DELETE(
   request: NextRequest,
   context: { params: { id: string } }

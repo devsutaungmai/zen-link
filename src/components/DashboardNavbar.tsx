@@ -36,6 +36,7 @@ const navigation = [
     icon: ClockIcon,
     children: [
       { name: 'Shift', href: '/dashboard/shifts' },
+      { name: 'Schedule', href: '/dashboard/schedule' },
     ],
   },
   { name: 'Settings', href: '/dashboard/settings', icon: Cog6ToothIcon },
