@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { PlusIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import Swal from 'sweetalert2'
+import Pagination from '@/app/components/Pagination'
 
 interface Employee {
   id: string
@@ -17,6 +18,7 @@ interface Employee {
     name: string
   }
   mobile: string
+  email?: string
   isTeamLeader: boolean
   dateOfHire: Date
 }
@@ -25,6 +27,10 @@ export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   useEffect(() => {
     fetchEmployees()
@@ -84,12 +90,24 @@ export default function EmployeesPage() {
     }
   }
 
+  const handleInvite = (email: string) => {
+    setInviteEmail(email);
+    setShowInviteModal(true);
+  };
+
   const filteredEmployees = employees.filter(employee => 
     `${employee.firstName} ${employee.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     employee.employeeNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
     employee.department.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (employee.employeeGroup?.name && employee.employeeGroup.name.toLowerCase().includes(searchTerm.toLowerCase()))
   )
+
+  const paginatedEmployees = filteredEmployees.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+
+  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage)
 
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString()
@@ -146,15 +164,13 @@ export default function EmployeesPage() {
                     <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Department</th>
                     <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Group</th>
                     <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Mobile</th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Hire Date</th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Role</th>
                     <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                       <span className="sr-only">Actions</span>
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {filteredEmployees.map((employee) => (
+                  {paginatedEmployees.map((employee) => (
                     <tr key={employee.id}>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
                         {employee.firstName} {employee.lastName}
@@ -176,14 +192,28 @@ export default function EmployeesPage() {
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         {employee.mobile}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {formatDate(employee.dateOfHire)}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {employee.isTeamLeader ? 'Team Leader' : 'Employee'}
-                      </td>
                       <td className="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                         <div className="flex items-center justify-end space-x-4">
+                          <button
+                            onClick={() => handleInvite(employee.email || '')}
+                            className="flex items-center text-[#31BCFF] hover:text-[#31BCFF]/90"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth={1.5}
+                              stroke="currentColor"
+                              className="w-5 h-5 mr-1"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M12 4.5v15m7.5-7.5h-15"
+                              />
+                            </svg>
+                            Invite
+                          </button>
                           <Link
                             href={`/dashboard/employees/${employee.id}/edit`}
                             className="text-[#31BCFF] hover:text-[#31BCFF]/90"
@@ -206,6 +236,62 @@ export default function EmployeesPage() {
           </div>
         </div>
       </div>
+
+      {showInviteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Send Invite</h2>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                try {
+                  const res = await fetch('/api/employees/invite', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: inviteEmail }),
+                  });
+                  if (res.ok) {
+                    Swal.fire('Success', 'Invite sent successfully!', 'success');
+                  } else {
+                    throw new Error('Failed to send invite');
+                  }
+                } catch (error) {
+                  console.error('Error sending invite:', error);
+                  Swal.fire('Error', 'Failed to send invite.', 'error');
+                } finally {
+                  setShowInviteModal(false);
+                }
+              }}
+            >
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">Email</label>
+                <input
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF]"
+                  required
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowInviteModal(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#31BCFF] text-white rounded-md hover:bg-[#31BCFF]/90"
+                >
+                  Send
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   )
 }

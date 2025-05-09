@@ -93,3 +93,22 @@ export async function DELETE(
     )
   }
 }
+
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const { id } = params
+
+  try {
+    const shift = await prisma.shift.update({
+      where: { id },
+      data: { approved: true },
+    })
+
+    return NextResponse.json(shift)
+  } catch (error) {
+    console.error('Failed to approve shift:', error)
+    return NextResponse.json(
+      { error: 'Failed to approve shift' },
+      { status: 500 }
+    )
+  }
+}

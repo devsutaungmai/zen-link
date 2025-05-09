@@ -1,15 +1,15 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { format, addDays, subDays, addWeeks, subWeeks, startOfWeek, endOfWeek } from 'date-fns'
-import Link from 'next/link'
+import { format, addDays, addWeeks, subWeeks, startOfWeek, endOfWeek } from 'date-fns'
 import { 
   PlusIcon, 
   ArrowLeftIcon, 
-  ArrowRightIcon, 
-  CalendarIcon 
+  ArrowRightIcon,  
 } from '@heroicons/react/24/outline'
+
 import Swal from 'sweetalert2'
+import ShiftGridCard from '@/components/ShiftGridCard'
 import ShiftForm from '@/components/ShiftForm'
 
 export default function SchedulePage() {
@@ -397,31 +397,45 @@ export default function SchedulePage() {
 
   const handleApproveShift = async (shiftId: string) => {
     try {
-      const res = await fetch(`/api/shifts/${shiftId}/approve`, {
-        method: 'POST',
+      const res = await fetch(`/api/shifts/${shiftId}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-      });
+      })
       if (res.ok) {
-        await fetchShifts();
-        Swal.fire('Success', 'Shift approved successfully!', 'success');
+        await fetchShifts()
+        Swal.fire('Success', 'Shift approved successfully!', 'success')
       } else {
-        throw new Error('Failed to approve shift');
+        throw new Error('Failed to approve shift')
       }
     } catch (error) {
-      console.error('Error approving shift:', error);
-      Swal.fire('Error', 'Failed to approve shift.', 'error');
+      console.error('Error approving shift:', error)
+      Swal.fire('Error', 'Failed to approve shift.', 'error')
     }
-  };
+  }
 
   const handleEditShift = (shift: Shift) => {
-    setShiftInitialData(shift);
+    setShiftInitialData({
+      ...shift,
+      date: shift.date.substring(0, 10), // Ensure the date is in yyyy-MM-dd format
+      startTime: shift.startTime || '09:00',
+      endTime: shift.endTime || '17:00',
+      shiftType: shift.shiftType || 'NORMAL',
+      wage: shift.wage || 0,
+      wageType: shift.wageType || 'HOURLY',
+      approved: shift.approved || false,
+      employeeId: shift.employeeId || undefined,
+      employeeGroupId: shift.employeeGroupId || undefined,
+      breakStart: shift.breakStart || undefined,
+      breakEnd: shift.breakEnd || undefined,
+      note: shift.note || '',
+    });
     setShowShiftModal(true);
   };
 
   return (
     <div className="py-6">
-      <div className="mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-4 flex justify-between items-center">
+      <div className="mx-auto">
+        <div className="mb-1 flex justify-between items-center">
           <div className="flex items-center">
             <h1 className="text-2xl font-semibold text-gray-900 mr-4">Schedule</h1>
             
@@ -540,83 +554,15 @@ export default function SchedulePage() {
                                 onDragOver={handleDragOver}
                                 onDrop={(e) => handleDrop(e, employee.id, date)}>
                                 {dayShifts.map(shift => (
-                                  <div
+                                  <ShiftGridCard
                                     key={shift.id}
-                                    className={`relative block py-2 px-3 rounded text-sm shadow-sm
-                                      ${shift.approved
-                                        ? "bg-green-100 border border-green-300 text-green-800"
-                                        : "bg-gray-100 border border-gray-300 text-gray-800"}
-                                      hover:opacity-90 cursor-grab transition group`}
-                                    draggable
-                                    onDragStart={(e) => handleDragStart(e, shift, employee.id)}
+                                    shift={shift}
+                                    employeeId={employee.id}
+                                    onApprove={handleApproveShift}
+                                    onEdit={handleEditShift}
+                                    onDragStart={handleDragStart}
                                     onDragEnd={handleDragEnd}
-                                    onClick={() => window.location.href = `/dashboard/shifts/${shift.id}/edit`}
-                                    style={{ fontSize: '12px', lineHeight: '16px' }}
-                                  >
-                                    {/* Shift Details */}
-                                    <div className="font-semibold truncate">{shift.startTime.substring(0, 5)} - {shift.endTime.substring(0, 5)}</div>
-                                    {shift.employeeGroup && (
-                                      <div className="text-xs mt-1 opacity-75">{shift.employeeGroup.name}</div>
-                                    )}
-                                    <div className="text-xs mt-1">
-                                      {shift.approved ? "✓ Approved" : "Pending"}
-                                    </div>
-
-                                    {/* Mini Actions */}
-                                    <div className="absolute top-1 right-1 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition">
-                                      {/* Approve Button */}
-                                      {!shift.approved && (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation(); // Prevent triggering the card click
-                                            handleApproveShift(shift.id);
-                                          }}
-                                          className="text-green-600 hover:text-green-800"
-                                          title="Approve Shift"
-                                        >
-                                          <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            strokeWidth={1.5}
-                                            stroke="currentColor"
-                                            className="w-5 h-5"
-                                          >
-                                            <path
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                              d="M4.5 12.75l6 6 9-13.5"
-                                            />
-                                          </svg>
-                                        </button>
-                                      )}
-
-                                      {/* Edit Button */}
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation(); // Prevent triggering the card click
-                                          handleEditShift(shift);
-                                        }}
-                                        className="text-blue-600 hover:text-blue-800"
-                                        title="Edit Shift"
-                                      >
-                                        <svg
-                                          xmlns="http://www.w3.org/2000/svg"
-                                          fill="none"
-                                          viewBox="0 0 24 24"
-                                          strokeWidth={1.5}
-                                          stroke="currentColor"
-                                          className="w-5 h-5"
-                                        >
-                                          <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M16.862 3.487a2.25 2.25 0 113.182 3.182L6.75 19.964l-4.5.75.75-4.5 13.862-13.727z"
-                                          />
-                                        </svg>
-                                      </button>
-                                    </div>
-                                  </div>
+                                  />
                                 ))}
                               </div>
                             ) : (
