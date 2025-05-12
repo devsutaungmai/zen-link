@@ -29,6 +29,7 @@ export default function EmployeesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteEmployeeId, setInviteEmployeeId] = useState('');
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
@@ -90,8 +91,9 @@ export default function EmployeesPage() {
     }
   }
 
-  const handleInvite = (email: string) => {
+  const handleInvite = (email: string, employeeId: string) => {
     setInviteEmail(email);
+    setInviteEmployeeId(employeeId);
     setShowInviteModal(true);
   };
 
@@ -195,7 +197,7 @@ export default function EmployeesPage() {
                       <td className="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                         <div className="flex items-center justify-end space-x-4">
                           <button
-                            onClick={() => handleInvite(employee.email || '')}
+                            onClick={() => handleInvite(employee.email || '', employee.id)}
                             className="flex items-center text-[#31BCFF] hover:text-[#31BCFF]/90"
                           >
                             <svg
@@ -209,7 +211,7 @@ export default function EmployeesPage() {
                               <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                d="M12 4.5v15m7.5-7.5h-15"
+                                d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25H4.5a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
                               />
                             </svg>
                             Invite
@@ -248,12 +250,23 @@ export default function EmployeesPage() {
                   const res = await fetch('/api/employees/invite', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: inviteEmail }),
+                    body: JSON.stringify({ 
+                      email: inviteEmail,
+                      employeeId: inviteEmployeeId,
+                    }),
                   });
                   if (res.ok) {
+                    // Update the employee's email in the local state
+                    setEmployees(employees.map(emp => 
+                      emp.id === inviteEmployeeId 
+                        ? { ...emp, email: inviteEmail } 
+                        : emp
+                    ));
+                    
                     Swal.fire('Success', 'Invite sent successfully!', 'success');
                   } else {
-                    throw new Error('Failed to send invite');
+                    const data = await res.json();
+                    throw new Error(data.error || 'Failed to send invite');
                   }
                 } catch (error) {
                   console.error('Error sending invite:', error);

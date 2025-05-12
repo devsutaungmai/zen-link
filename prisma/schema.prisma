@@ -34,9 +34,10 @@ model Business {
   address       String
   type          String
   employeesCount Int
-  users        User[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  users         User[]
+  invitations   Invitation[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Employee {
@@ -195,6 +196,19 @@ model ShiftExchange {
   toEmployee     Employee @relation("ToEmployee", fields: [toEmployeeId], references: [id])
   toEmployeeId   String
   exchangedAt    DateTime @default(now())
+}
+
+model Invitation {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  token      String   @unique
+  firstName  String?
+  lastName   String?
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 enum Role {
