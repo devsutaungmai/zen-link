@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Swal from 'sweetalert2'
 
-export default function MakePasswordPage() {
+function PasswordForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const email = searchParams.get('email')
@@ -24,7 +24,6 @@ export default function MakePasswordPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
-  // Fetch employee data on load
   useEffect(() => {
     const fetchEmployeeData = async () => {
       if (!email && !employeeId) {
@@ -51,7 +50,6 @@ export default function MakePasswordPage() {
         })
       } catch (error) {
         console.error('Error fetching employee data:', error)
-        // Continue anyway, we'll just use the data from URL
       } finally {
         setLoading(false)
       }
@@ -180,5 +178,17 @@ export default function MakePasswordPage() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function MakePasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#31BCFF]"></div>
+      </div>
+    }>
+      <PasswordForm />
+    </Suspense>
   )
 }
