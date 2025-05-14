@@ -11,6 +11,10 @@ import {
 import Swal from 'sweetalert2'
 import ShiftGridCard from '@/components/ShiftGridCard'
 import ShiftForm from '@/components/ShiftForm'
+import ScheduleHeader from '@/components/schedule/ScheduleHeader'
+import WeekView from '@/components/schedule/WeekView'
+import DayView from '@/components/schedule/DayView'
+import ShiftFormModal from '@/components/schedule/ShiftFormModel'
 
 export default function SchedulePage() {
   const [showShiftModal, setShowShiftModal] = useState(false)
@@ -481,7 +485,7 @@ export default function SchedulePage() {
 
       const formattedDate = format(dragDate, 'yyyy-MM-dd');
       const startTime = `${startHour.toString().padStart(2, '0')}:00`;
-      const endTime = `${endHour.toString().padStart(2, '0')}:00`;
+      const endTime = `${(endHour + 1).toString().padStart(2, '0')}:00`; // Add 1 to end hour to make range inclusive
 
       // Reset drag state
       setDragStartHour(null);
@@ -489,43 +493,21 @@ export default function SchedulePage() {
       setDragDate(null);
       setIsDraggingToCreate(false);
 
-      // Show a confirmation modal or directly create the shift
-      const result = await Swal.fire({
-        title: 'Create Shift',
-        text: `Create a shift from ${startTime} to ${endTime}?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#31BCFF',
-        confirmButtonText: 'Create',
-        cancelButtonText: 'Cancel',
+      // Instead of showing a confirmation, open the shift form with pre-filled data
+      setModalViewType('week');
+      setShiftInitialData({
+        date: formattedDate,
+        startTime,
+        endTime,
+        shiftType: 'NORMAL',
+        wage: 0,
+        wageType: 'HOURLY',
+        approved: false,
+        employeeId: '',
+        employeeGroupId: undefined,
+        note: ''
       });
-
-      if (result.isConfirmed) {
-        try {
-          const res = await fetch('/api/shifts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              date: formattedDate,
-              startTime,
-              endTime,
-              shiftType: 'NORMAL',
-              wage: 0,
-              wageType: 'HOURLY',
-            }),
-          });
-
-          if (res.ok) {
-            await fetchShifts();
-            Swal.fire('Success', 'Shift created successfully!', 'success');
-          } else {
-            throw new Error('Failed to create shift');
-          }
-        } catch (error) {
-          console.error('Error creating shift:', error);
-          Swal.fire('Error', 'Failed to create shift.', 'error');
-        }
-      }
+      setShowShiftModal(true);
     }
   };
 
@@ -608,243 +590,68 @@ export default function SchedulePage() {
     );
   };
 
+  const handleTodayClick = () => {
+    const today = new Date()
+    setCurrentDate(today)
+    setSelectedDate(today)
+    setViewMode('day')
+  }
+
   return (
     <div className="py-6">
       <div className="mx-auto">
-        <div className="mb-1 flex justify-between items-center">
-          <div className="flex items-center">
-            <h1 className="text-2xl font-semibold text-gray-900 mr-4">Schedule</h1>
-            
-            <div className="flex space-x-2">
-              <button 
-                onClick={handlePreviousWeek}
-                className="p-2 rounded-md hover:bg-gray-200 text-gray-900"
-              >
-                <ArrowLeftIcon className="h-5 w-5" />
-              </button>
-              
-              <div className="px-3 py-1 border rounded-md text-gray-500">
-                {format(startDate, 'MMM d')} - {format(endDate, 'MMM d, yyyy')}
-              </div>
-              
-              <button 
-                onClick={handleNextWeek}
-                className="p-2 rounded-md hover:bg-gray-200 text-gray-900"
-              >
-                <ArrowRightIcon className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-          
-          <div className="flex space-x-2">
-            <button
-              onClick={() => {
-                const today = new Date()
-                setCurrentDate(today)
-                setSelectedDate(today)
-                setViewMode('day')
-              }}
-              className={`px-4 py-2 rounded-md border transition-colors duration-150
-                ${viewMode === 'day' ? 'bg-[#31BCFF] text-white border-[#31BCFF]' : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-100'}`}
-            >
-              Today
-            </button>
-            <button
-              onClick={() => setViewMode('week')}
-              className={`px-4 py-2 rounded-md border transition-colors duration-150
-                ${viewMode === 'week' ? 'bg-[#31BCFF] text-white border-[#31BCFF]' : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-100'}`}
-            >
-              Week
-            </button>
-          </div>
-        </div>
+        <ScheduleHeader
+          startDate={startDate}
+          endDate={endDate}
+          viewMode={viewMode}
+          onPreviousWeek={handlePreviousWeek}
+          onNextWeek={handleNextWeek}
+          onTodayClick={handleTodayClick}
+          onViewModeChange={setViewMode}
+        />
 
         {viewMode === 'week' ? (
-          <div 
-            className="overflow-hidden"
-            onMouseLeave={handleMouseUp}
-          >
-            <div 
-              ref={weekScrollableRef}
-              className="min-w-full cursor-grab active:cursor-grabbing"
-              onMouseDown={(e) => handleMouseDown(e, 'week')}
-              onMouseUp={handleMouseUp}
-              onMouseMove={(e) => handleMouseMove(e, 'week')}
-              onTouchStart={(e) => handleTouchStart(e, 'week')}
-              onTouchMove={(e) => handleTouchMove(e, 'week')}
-              onTouchEnd={handleMouseUp}
-            >
-              <div className="min-w-full">
-                <div className="grid grid-cols-[200px_repeat(7,1fr)] border-b">
-                  {/* Hour labels column */}
-                  <div>
-                    <div className="p-3 font-medium text-center border-r bg-gray-100 h-[72px]"></div> {/* Header */}
-                    {Array.from({ length: 23 }, (_, hour) => hour + 1).map(hour => (
-                      <div
-                        key={hour}
-                        className="border-b border-r p-3 bg-gray-100 h-[60px]"
-                      >
-                        <div className="font-medium text-gray-900">{hour}:00</div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Days columns */}
-                  {weekDates.map((date, i) => {
-                    const formattedDate = format(date, 'yyyy-MM-dd');
-                    const dayShifts = shifts.filter(shift => shift.date.substring(0, 10) === formattedDate);
-                    const isToday = new Date().toDateString() === date.toDateString();
-                    
-                    return (
-                      <div key={i} className="relative">
-                        {/* Day header */}
-                        <div className={`p-3 font-medium text-center border-r h-[72px] ${isToday ? 'bg-blue-50' : ''}`}>
-                          <div className={`text-gray-950 font-bold ${isToday ? 'text-blue-700' : ''}`}>
-                            {isToday ? <span className="text-blue-700">Today</span> : format(date, 'EEE, MMM d')}
-                          </div>
-                          <div className="text-sm text-gray-900">
-                            <PlusIcon className="inline h-4 w-4 mr-1" />
-                            {getDayShiftCount(formattedDate)} Shifts
-                          </div>
-                        </div>
-                        
-                        {/* Hours container with relative positioning */}
-                        <div className="relative">
-                          {/* Hour cells for capturing events */}
-                          {Array.from({ length: 23 }, (_, hourIndex) => {
-                            const hour = hourIndex + 1;
-                            return (
-                              <div
-                                key={hour}
-                                className={`border-b border-r p-3 h-[60px] ${
-                                  isDraggingToCreate && dragStartHour !== null && dragEndHour !== null && 
-                                  dragDate !== null && dragDate.toDateString() === date.toDateString() &&
-                                  hour >= Math.min(dragStartHour, dragEndHour) &&
-                                  hour <= Math.max(dragStartHour, dragEndHour)
-                                    ? 'bg-blue-100'
-                                    : ''
-                                }`}
-                                onMouseDown={() => handleDragStartToCreate(hour, date)}
-                                onMouseEnter={() => handleDragOverToCreate(hour)}
-                                onMouseUp={() => handleDragEndToCreate(date)}
-                                style={{ pointerEvents: 'auto' }}
-                              />
-                            );
-                          })}
-                          
-                          {/* Spanning shifts overlay - ensure it can receive events */}
-                          <div className="pointer-events-auto">
-                            {dayShifts.map(shift => (
-                              <SpanningShiftCard 
-                                key={shift.id} 
-                                shift={shift} 
-                                date={formattedDate}
-                                employees={employees} 
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
+          <WeekView
+            weekDates={weekDates}
+            shifts={shifts}
+            employees={employees}
+            onEditShift={handleEditShift}
+            onAddShift={(formData) => {
+              if (formData) {
+                // We have form data from drag-to-create
+                setModalViewType('week');
+                setShiftInitialData(formData);
+              } else {
+                // Regular add button was clicked
+                setModalViewType('week');
+                setShiftInitialData(null);
+              }
+              setShowShiftModal(true);
+            }}
+          />
         ) : (
-          <div className="mt-4">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              Schedule for {format(selectedDate, 'EEEE, MMMM d, yyyy')}
-            </h2>
-            <div className="border rounded-lg bg-white shadow">
-              <table className="w-full table-fixed border-collapse text-xs">
-                <thead>
-                  <tr>
-                    <th className="bg-gray-100 border-b border-r w-28 py-1 px-2 text-left font-semibold text-gray-700">Hour</th>
-                    {Array.from({ length: 24 }, (_, hour) => (
-                      <th
-                        key={hour}
-                        className="bg-gray-100 border-b border-r py-1 px-0.5 font-medium text-center text-gray-700 w-8"
-                        style={{ width: '32px', minWidth: '32px', maxWidth: '32px' }}
-                      >
-                        {hour.toString().padStart(2, '0')}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.from({ length: 23 }, (_, hour) => (
-                    <tr key={hour} className="hover:bg-gray-50">
-                      <td className="border-b border-r bg-gray-50 px-2 py-1 font-medium text-xs text-gray-800 whitespace-nowrap">
-                        {hour}:00
-                      </td>
-                      {Array.from({ length: 24 }, (_, hourIndex) => (
-                        <td
-                          key={hourIndex}
-                          className="border-b border-r px-0.5 py-0.5 min-h-[20px] relative group"
-                          style={{ width: '32px', minWidth: '32px', maxWidth: '32px', height: '28px' }}
-                          onDragOver={handleDragOver}
-                          onDrop={e => handleDrop(e, '', selectedDate)}
-                        >
-                          {/* Add shift creation button */}
-                          <button
-                            onClick={() => {
-                              setModalViewType('day');
-                              setShiftInitialData({
-                                date: format(selectedDate, 'yyyy-MM-dd'),
-                                employeeId: '',
-                                startTime: `${hourIndex.toString().padStart(2, '0')}:00`,
-                                endTime: '',
-                                shiftType: 'NORMAL',
-                                wage: 0,
-                                wageType: 'HOURLY',
-                                approved: false,
-                                employeeGroupId: undefined,
-                                note: ''
-                              });
-                              setShowShiftModal(true);
-                            }}
-                            className="rounded-full h-4 w-4 flex items-center justify-center bg-gray-100 hover:bg-[#31BCFF]/10 text-gray-400 hover:text-[#31BCFF] border border-gray-200 mx-auto opacity-0 group-hover:opacity-100 transition"
-                            title="Add shift"
-                            style={{ fontSize: '10px' }}
-                          >
-                            <PlusIcon className="h-2 w-2" />
-                          </button>
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+         <DayView
+            selectedDate={selectedDate}
+            shifts={shifts.filter(shift => shift.date.substring(0, 10) === format(selectedDate, 'yyyy-MM-dd'))}
+            onAddShift={() => {
+              setModalViewType('day')
+              setShiftInitialData(null)
+              setShowShiftModal(true)
+            }}
+          />
         )}
       </div>
-      {showShiftModal && shiftInitialData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-          <div className="bg-white rounded-lg shadow-lg p-4 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">
-                {shiftInitialData.id ? 'Edit Shift' : 'Create New Shift'}
-              </h2>
-              <button onClick={() => setShowShiftModal(false)} className="text-gray-500 hover:text-gray-700">
-                <span className="text-xl">&times;</span>
-              </button>
-            </div>
-            <ShiftForm
-              initialData={shiftInitialData}
-              employees={employees}
-              employeeGroups={employeeGroups}
-              onSubmit={handleShiftFormSubmit}
-              onCancel={() => setShowShiftModal(false)}
-              loading={loading}
-              showEmployee={modalViewType === 'week'}
-              showStartTime={modalViewType === 'week'}
-              showDate={true}
-            />
-          </div>
-        </div>
-      )}
+
+     <ShiftFormModal
+        isOpen={showShiftModal}
+        onClose={() => setShowShiftModal(false)}
+        initialData={shiftInitialData}
+        employees={employees}
+        employeeGroups={employeeGroups}
+        onSubmit={handleShiftFormSubmit}
+        viewType={modalViewType}
+        loading={loading}
+      />
     </div>
   )
 }
