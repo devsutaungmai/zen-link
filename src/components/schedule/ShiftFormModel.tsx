@@ -1,5 +1,13 @@
-import ShiftForm from "../ShiftForm"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
+import ShiftForm from "../ShiftForm"
 
 interface ShiftFormModalProps {
   isOpen: boolean
@@ -22,19 +30,14 @@ export default function ShiftFormModal({
   viewType,
   loading
 }: ShiftFormModalProps) {
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-      <div className="bg-white rounded-lg shadow-lg p-4 w-full max-w-md">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
             {initialData?.id ? 'Edit Shift' : 'Create New Shift'}
-          </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <span className="text-xl">&times;</span>
-          </button>
-        </div>
+          </DialogTitle>
+        </DialogHeader>
         <ShiftForm
           initialData={initialData}
           employees={employees}
@@ -46,7 +49,7 @@ export default function ShiftFormModal({
           showStartTime={viewType === 'week'}
           showDate={true}
         />
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
