@@ -11,6 +11,9 @@
     "vercel-build": "prisma generate && prisma migrate deploy && next build"
   },
   "dependencies": {
+    "@fullcalendar/interaction": "^6.1.17",
+    "@fullcalendar/react": "^6.1.17",
+    "@fullcalendar/timegrid": "^6.1.17",
     "@headlessui/react": "^2.2.1",
     "@heroicons/react": "^2.2.0",
     "@prisma/client": "^6.5.0",

@@ -1,7 +1,29 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { ShiftType, WageType } from '@prisma/client'
+
+// Add date formatting utilities
+const formatDateForDisplay = (dateStr: string): string => {
+  try {
+    const date = new Date(dateStr);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch (e) {
+    return dateStr;
+  }
+}
+
+const parseDateForSubmission = (displayDate: string): string => {
+  try {
+    const [day, month, year] = displayDate.split('/');
+    return `${year}-${month}-${day}`;
+  } catch (e) {
+    return displayDate;
+  }
+}
 
 interface ShiftFormData {
   date: string
@@ -30,7 +52,7 @@ interface ShiftFormProps {
   showDate?: boolean
 }
 
-export default function  ShiftForm({
+export default function ShiftForm({
   initialData,
   onSubmit,
   onCancel,
@@ -43,6 +65,9 @@ export default function  ShiftForm({
 }: ShiftFormProps) {
   const today = new Date()
   const todayString = today.toISOString().split('T')[0]
+
+  // Add display date state
+  const [displayDate, setDisplayDate] = useState<string>('')
 
   const [formData, setFormData] = useState<ShiftFormData>(() => {
     return initialData || {
@@ -65,9 +90,19 @@ export default function  ShiftForm({
     return initialData ? !!initialData.breakStart || !!initialData.breakEnd : false
   })
 
+  // Set display date when formData changes
+  useEffect(() => {
+    setDisplayDate(formatDateForDisplay(formData.date))
+  }, [formData.date])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit(formData)
+    // Convert the display date back to YYYY-MM-DD for submission
+    const submissionData = {
+      ...formData,
+      date: parseDateForSubmission(displayDate)
+    }
+    onSubmit(submissionData)
   }
 
   const toggleBreakFields = () => {
@@ -89,22 +124,40 @@ export default function  ShiftForm({
     }
   }
 
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDisplayDate = e.target.value;
+    setDisplayDate(newDisplayDate);
+    
+    // Update the actual form data with the parsed date
+    try {
+      const [day, month, year] = newDisplayDate.split('/');
+      if (day && month && year && year.length === 4) {
+        const parsedDate = `${year}-${month}-${day}`;
+        setFormData({ ...formData, date: parsedDate });
+      }
+    } catch (e) {
+      // If parsing fails, keep the display value but don't update form data
+    }
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        {/* Date */}
+        {/* Date - Changed to text input with formatted display */}
         {showDate && (
           <div>
             <label className="block text-sm font-medium text-gray-700">
               Date <span className="text-red-500">*</span>
             </label>
             <input
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              type="text"
+              value={displayDate}
+              onChange={handleDateChange}
+              placeholder="DD/MM/YYYY"
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF]"
               required
             />
+            <p className="mt-1 text-xs text-gray-500">Format: DD/MM/YYYY</p>
           </div>
         )}
 

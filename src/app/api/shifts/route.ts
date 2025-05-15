@@ -53,24 +53,50 @@ export async function GET(request: Request) {
 
 export async function POST(req: Request) {
   try {
-    const data = await req.json()
+    const data = await req.json();
+
+    const startHour = parseInt(data.startTime.split(':')[0], 10);
+    const endHour = parseInt(data.endTime.split(':')[0], 10);
+
+    if (endHour < startHour) {
+      // Shift spans across two days
+      const nextDay = new Date(data.date);
+      nextDay.setDate(nextDay.getDate() + 1);
+
+      const firstPart = {
+        ...data,
+        date: new Date(data.date), // Convert to Date object
+        endTime: '23:59', // First part ends at midnight
+      };
+
+      const secondPart = {
+        ...data,
+        date: nextDay, // Use Date object for the next day
+        startTime: '01:00', // Start at midnight
+      };
+
+      const [firstShift, secondShift] = await Promise.all([
+        prisma.shift.create({ data: firstPart }),
+        prisma.shift.create({ data: secondPart }),
+      ]);
+
+      return NextResponse.json([firstShift, secondShift]);
+    }
+
+    // If the shift does not span across two days, create it as a single shift
     const shift = await prisma.shift.create({
       data: {
         ...data,
-        date: data.date ? new Date(data.date) : undefined,
-        breakStart: data.breakStart ? new Date(data.breakStart) : undefined,
-        breakEnd: data.breakEnd ? new Date(data.breakEnd) : undefined
+        date: new Date(data.date), // Convert to Date object
       },
-      include: {
-        employee: true,
-        employeeGroup: true
-      }
-    })
-    return NextResponse.json(shift)
+    });
+
+    return NextResponse.json(shift);
   } catch (error) {
+    console.error('Failed to create shift:', error);
     return NextResponse.json(
       { error: 'Failed to create shift' },
       { status: 500 }
-    )
+    );
   }
 }
