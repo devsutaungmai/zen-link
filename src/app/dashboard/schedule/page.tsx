@@ -430,287 +430,179 @@ export default function SchedulePage() {
       note: shift.note || '',
     });
     setShowShiftModal(true);
+    console.log("showShiftModal should now be:", true);
   };
+
+  const handleDragStartToCreate = (hour: number, date: Date) => {
+    setDragStartHour(hour);
+    setDragEndHour(hour);
+    setDragDate(date);
+    setIsDraggingToCreate(true);
+  };
+
+  const handleDragOverToCreate = (hour: number) => {
+    if (isDraggingToCreate) {
+      setDragEndHour(hour);
+    }
+  };
+
+  const handleDragEndToCreate = async (date: Date) => {
+    if (dragStartHour !== null && dragEndHour !== null && dragDate !== null) {
+      const startHour = Math.min(dragStartHour, dragEndHour);
+      const endHour = Math.max(dragStartHour, dragEndHour);
+
+      const formattedDate = format(dragDate, 'yyyy-MM-dd');
+      const startTime = `${startHour.toString().padStart(2, '0')}:00`;
+      const endTime = `${(endHour + 1).toString().padStart(2, '0')}:00`; // Add 1 to end hour to make range inclusive
+
+      // Reset drag state
+      setDragStartHour(null);
+      setDragEndHour(null);
+      setDragDate(null);
+      setIsDraggingToCreate(false);
+
+      // Instead of showing a confirmation, open the shift form with pre-filled data
+      setModalViewType('week');
+      setShiftInitialData({
+        date: formattedDate,
+        startTime,
+        endTime,
+        shiftType: 'NORMAL',
+        wage: 0,
+        wageType: 'HOURLY',
+        approved: false,
+        employeeId: '',
+        employeeGroupId: undefined,
+        note: ''
+      });
+      setShowShiftModal(true);
+    }
+  };
+
+  const getShiftPosition = (startTime: string, endTime: string) => {
+    const startParts = startTime.split(':');
+    const endParts = endTime.split(':');
+
+    const startHour = parseInt(startParts[0], 10);
+    const startMinutes = parseInt(startParts[1], 10);
+
+    const endHour = parseInt(endParts[0], 10);
+    const endMinutes = parseInt(endParts[1], 10);
+
+    // Calculate offsets in minutes since midnight
+    const startOffset = startHour * 60 + startMinutes;
+    let endOffset = endHour * 60 + endMinutes;
+    
+    // If end time is earlier than start time, assume it's the next day
+    if (endOffset < startOffset) {
+      endOffset += 24 * 60; // Add 24 hours
+    }
+
+    // Height calculation: 1 hour = 60px
+    const height = ((endOffset - startOffset) / 60) * 60;
+    
+    const top = ((startOffset - 60) / 60) * 60;
+    
+    return { top, height };
+  };
+
+  const SpanningShiftCard = ({ shift, date, employees }) => {
+    const { top, height } = getShiftPosition(shift.startTime, shift.endTime);
+    const employee = employees.find(e => e.id === shift.employeeId);
+    
+    return (
+      <div
+        className="absolute left-2 right-2 shift-card pointer-events-auto z-20"
+        style={{
+          top: `${top}px`,
+          height: `${height}px`,
+          minHeight: '20px',
+          backgroundColor: shift.approved ? undefined : '#31BCFF',
+          borderColor: shift.approved ? '#84cc16' : '#31BCFF',
+          color: shift.approved ? '#365314' : 'white',
+          borderWidth: '1px',
+          borderRadius: '0.375rem',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+          padding: '0.5rem',
+          cursor: 'pointer',
+        }}
+        onClick={(e) => {
+          console.log("Click on shift:", shift.id);
+          e.stopPropagation();
+        }}
+        onDoubleClick={(e) => {
+          console.log("Double click on shift:", shift.id);
+          e.stopPropagation();
+          e.preventDefault();
+          handleEditShift(shift);
+        }}
+        title="Double-click to edit"
+        draggable={false}
+      >
+        <div className="font-medium text-sm">
+          {shift.startTime.substring(0, 5)} - {shift.endTime.substring(0, 5)}
+        </div>
+        {height > 40 && (
+          <div className="text-xs mt-1 truncate">
+            {employee ? `${employee.firstName} ${employee.lastName}` : 'Unassigned'}
+          </div>
+        )}
+        {height > 60 && shift.employeeGroup && (
+          <div className="text-xs mt-1 opacity-75 truncate">
+            {shift.employeeGroup.name}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const handleTodayClick = () => {
+    const today = new Date()
+    setCurrentDate(today)
+    setSelectedDate(today)
+    setViewMode('day')
+  }
 
   return (
     <div className="py-6">
       <div className="mx-auto">
-        <div className="mb-1 flex justify-between items-center">
-          <div className="flex items-center">
-            <h1 className="text-2xl font-semibold text-gray-900 mr-4">Schedule</h1>
-            
-            <div className="flex space-x-2">
-              <button 
-                onClick={handlePreviousWeek}
-                className="p-2 rounded-md hover:bg-gray-200 text-gray-900"
-              >
-                <ArrowLeftIcon className="h-5 w-5" />
-              </button>
-              
-              <div className="px-3 py-1 border rounded-md text-gray-500">
-                {format(startDate, 'MMM d')} - {format(endDate, 'MMM d, yyyy')}
-              </div>
-              
-              <button 
-                onClick={handleNextWeek}
-                className="p-2 rounded-md hover:bg-gray-200 text-gray-900"
-              >
-                <ArrowRightIcon className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-          
-          <div className="flex space-x-2">
-            <button
-              onClick={() => {
-                const today = new Date()
-                setCurrentDate(today)
-                setSelectedDate(today)
-                setViewMode('day')
-              }}
-              className={`px-4 py-2 rounded-md border transition-colors duration-150
-                ${viewMode === 'day' ? 'bg-[#31BCFF] text-white border-[#31BCFF]' : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-100'}`}
-            >
-              Today
-            </button>
-            <button
-              onClick={() => setViewMode('week')}
-              className={`px-4 py-2 rounded-md border transition-colors duration-150
-                ${viewMode === 'week' ? 'bg-[#31BCFF] text-white border-[#31BCFF]' : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-100'}`}
-            >
-              Week
-            </button>
-          </div>
-        </div>
+        <ScheduleHeader
+          startDate={startDate}
+          endDate={endDate}
+          viewMode={viewMode}
+          onPreviousWeek={handlePreviousWeek}
+          onNextWeek={handleNextWeek}
+          onTodayClick={handleTodayClick}
+          onViewModeChange={setViewMode}
+        />
 
         {viewMode === 'week' ? (
-          <div 
-            className="overflow-hidden"
-            onMouseLeave={handleMouseUp}
-          >
-            <div 
-              ref={weekScrollableRef}
-              className="min-w-full cursor-grab active:cursor-grabbing"
-              onMouseDown={(e) => handleMouseDown(e, 'week')}
-              onMouseUp={handleMouseUp}
-              onMouseMove={(e) => handleMouseMove(e, 'week')}
-              onTouchStart={(e) => handleTouchStart(e, 'week')}
-              onTouchMove={(e) => handleTouchMove(e, 'week')}
-              onTouchEnd={handleMouseUp}
-            >
-              <div className="min-w-full">
-                <div className="grid grid-cols-[200px_repeat(7,1fr)] border-b">
-                  <div className="p-3 font-medium text-center border-r bg-gray-100"></div>
-                  
-                  {weekDates.map((date, i) => {
-                    const isToday = new Date().toDateString() === date.toDateString();
-                    return (
-                      <div 
-                        key={i} 
-                        className={`p-3 font-medium text-center border-r ${isToday ? 'bg-blue-50' : ''}`}
-                      >
-                        <div className={`text-gray-950 font-bold ${isToday ? 'text-blue-700' : ''}`}>
-                          {isToday ? (
-                            <span className="text-blue-700">Today</span>
-                          ) : (
-                            format(date, 'EEE, MMM d')
-                          )}
-                        </div>
-                        <div className="text-sm text-gray-900">
-                          <PlusIcon className="inline h-4 w-4 mr-1" />
-                          {getDayShiftCount(format(date, 'yyyy-MM-dd'))} Shifts
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {employees.map(employee => (
-                    <React.Fragment key={employee.id}>
-                      <div className="border-b border-r p-3 bg-gray-100">
-                        <div className="font-medium text-gray-900">{employee.firstName} {employee.lastName}</div>
-                        <div className="text-sm text-gray-900">
-                          {formatHours(getEmployeeWeeklyStats(employee.id).totalHours)} / {getEmployeeWeeklyStats(employee.id).totalShifts} Shifts
-                        </div>
-                      </div>
-                      
-                      {weekDates.map((date, i) => {
-                        const formattedDate = format(date, 'yyyy-MM-dd')
-                        const dayShifts = shifts.filter(shift => 
-                          shift.employeeId === employee.id && 
-                          shift.date.substring(0, 10) === formattedDate
-                        )
-                        
-                        return (
-                          <div 
-                            key={i} 
-                            className={`border-b border-r p-3 text-center relative min-h-[60px] hover:bg-gray-50 ${
-                              getDragOverClass(employee.id, formattedDate)
-                            }`}
-                            onDragOver={handleDragOver}
-                            onDrop={(e) => handleDrop(e, employee.id, date)}
-                          >
-                            {dayShifts.length > 0 ? (
-                              <div className="space-y-1"
-                                onDragOver={handleDragOver}
-                                onDrop={(e) => handleDrop(e, employee.id, date)}>
-                                {dayShifts.map(shift => (
-                                  <ShiftGridCard
-                                    key={shift.id}
-                                    shift={shift}
-                                    employeeId={employee.id}
-                                    onApprove={handleApproveShift}
-                                    onEdit={handleEditShift}
-                                    onDragStart={handleDragStart}
-                                    onDragEnd={handleDragEnd}
-                                  />
-                                ))}
-                              </div>
-                            ) : (
-                              <div
-                                className="h-full w-full absolute top-0 left-0"
-                                onDragOver={handleDragOver}
-                                onDrop={(e) => handleDrop(e, employee.id, date)}
-                              >
-                                <button
-                                  onClick={() => {
-                                    setModalViewType('week')
-                                    setShiftInitialData({
-                                      date: format(date, 'yyyy-MM-dd'),
-                                      employeeId: employee.id,
-                                      startTime: '',
-                                      endTime: '',
-                                      shiftType: 'NORMAL',
-                                      wage: 0,
-                                      wageType: 'HOURLY',
-                                      approved: false,
-                                      employeeGroupId: undefined,
-                                      note: ''
-                                    })
-                                    setShowShiftModal(true)
-                                  }}
-                                  className="rounded-full h-6 w-6 flex items-center justify-center bg-gray-100 hover:bg-[#31BCFF]/10 mx-auto text-gray-500 hover:text-[#31BCFF] absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 border border-gray-200"
-                                >
-                                  <PlusIcon className="h-4 w-4" />
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </React.Fragment>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          <WeekView
+            weekDates={weekDates}
+            shifts={shifts}
+            employees={employees}
+            onEditShift={handleEditShift}
+            onAddShift={(formData) => {
+              if (formData) {
+                setModalViewType('week');
+                setShiftInitialData(formData);
+              } else {
+                setModalViewType('week');
+                setShiftInitialData(null);
+              }
+              setShowShiftModal(true);
+            }}
+          />
         ) : (
-          <div className="mt-4">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              Schedule for {format(selectedDate, 'EEEE, MMMM d, yyyy')}
-            </h2>
-            <div className="border rounded-lg bg-white shadow">
-              <table className="w-full table-fixed border-collapse text-xs">
-                <thead>
-                  <tr>
-                    <th className="bg-gray-100 border-b border-r w-28 py-1 px-2 text-left font-semibold text-gray-700">Employee</th>
-                    {Array.from({ length: 24 }, (_, hour) => (
-                      <th
-                        key={hour}
-                        className="bg-gray-100 border-b border-r py-1 px-0.5 font-medium text-center text-gray-700 w-8"
-                        style={{ width: '32px', minWidth: '32px', maxWidth: '32px' }}
-                      >
-                        {hour.toString().padStart(2, '0')}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {employees.map(employee => (
-                    <tr key={employee.id} className="hover:bg-gray-50">
-                      <td className="border-b border-r bg-gray-50 px-2 py-1 font-medium text-xs text-gray-800 whitespace-nowrap">
-                        {employee.firstName} {employee.lastName}
-                      </td>
-                      {Array.from({ length: 24 }, (_, hour) => {
-                        const hourShifts = shifts.filter(shift => {
-                          if (shift.employeeId !== employee.id ||
-                              shift.date.substring(0, 10) !== format(selectedDate, 'yyyy-MM-dd')) {
-                            return false;
-                          }
-                          const startHour = parseInt(shift.startTime.split(':')[0]);
-                          const endHour = parseInt(shift.endTime.split(':')[0]);
-                          const endMinute = parseInt(shift.endTime.split(':')[1]);
-                          return (startHour === hour) ||
-                                 (startHour < hour && (endHour > hour || (endHour === hour && endMinute > 0)));
-                        });
-                        return (
-                          <td
-                            key={hour}
-                            className="border-b border-r px-0.5 py-0.5 min-h-[20px] relative group"
-                            style={{ width: '32px', minWidth: '32px', maxWidth: '32px', height: '28px' }}
-                            onDragOver={handleDragOver}
-                            onDrop={e => handleDrop(e, employee.id, selectedDate)}
-                          >
-                            {hourShifts.map(shift => {
-                              const startHour = parseInt(shift.startTime.split(':')[0]);
-                              const isStartingHour = startHour === hour;
-                              return isStartingHour ? (
-                                <div
-                                  key={shift.id}
-                                  className={`block py-0.5 px-1 rounded text-[10px] shadow-sm
-                                    ${shift.approved
-                                      ? "bg-green-100 border border-green-300 text-green-800"
-                                      : "bg-gray-100 border border-gray-300 text-gray-800"}
-                                    hover:opacity-90 cursor-grab transition`}
-                                  draggable
-                                  onDragStart={e => handleDragStart(e, shift, employee.id)}
-                                  onDragEnd={handleDragEnd}
-                                  onClick={() => window.location.href = `/dashboard/shifts/${shift.id}/edit`}
-                                  style={{ fontSize: '10px', lineHeight: '12px' }}
-                                >
-                                  <div className="font-semibold truncate">{shift.startTime.substring(0,5)}-{shift.endTime.substring(0,5)}</div>
-                                  {shift.employeeGroup && (
-                                    <div className="text-[9px] mt-0.5 opacity-75">{shift.employeeGroup.name}</div>
-                                  )}
-                                  <div className="text-[9px] mt-0.5">
-                                    {shift.approved ? "✓" : ""}
-                                  </div>
-                                </div>
-                              ) : null;
-                            })}
-                            {hourShifts.length === 0 && (
-                              <button
-                                onClick={() => {
-                                  setModalViewType('day')
-                                  setShiftInitialData({
-                                    date: format(selectedDate, 'yyyy-MM-dd'),
-                                    employeeId: employee.id,
-                                    startTime: `${hour.toString().padStart(2, '0')}:00`,
-                                    endTime: '',
-                                    shiftType: 'NORMAL',
-                                    wage: 0,
-                                    wageType: 'HOURLY',
-                                    approved: false,
-                                    employeeGroupId: undefined,
-                                    note: ''
-                                  })
-                                  setShowShiftModal(true)
-                                }}
-                                className="rounded-full h-4 w-4 flex items-center justify-center bg-gray-100 hover:bg-[#31BCFF]/10 text-gray-400 hover:text-[#31BCFF] border border-gray-200 mx-auto opacity-0 group-hover:opacity-100 transition"
-                                title="Add shift"
-                                style={{ fontSize: '10px' }}
-                              >
-                                <PlusIcon className="h-2 w-2" />
-                              </button>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+         <DayView
+            selectedDate={selectedDate}
+            shifts={shifts.filter(shift => shift.date.substring(0, 10) === format(selectedDate, 'yyyy-MM-dd'))}
+            onAddShift={() => {
+              setModalViewType('day')
+              setShiftInitialData(null)
+              setShowShiftModal(true)
+            }}
+          />
         )}
       </div>
       {showShiftModal && (
