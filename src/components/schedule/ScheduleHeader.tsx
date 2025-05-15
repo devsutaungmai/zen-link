@@ -1,6 +1,12 @@
 import { format } from 'date-fns'
 import { ArrowLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
 
+interface Employee {
+  id: string
+  firstName: string
+  lastName: string
+}
+
 interface ScheduleHeaderProps {
   startDate: Date
   endDate: Date
@@ -9,6 +15,9 @@ interface ScheduleHeaderProps {
   onNextWeek: () => void
   onTodayClick: () => void
   onViewModeChange: (mode: 'week' | 'day') => void
+  employees: Employee[]
+  selectedEmployeeId: string | null
+  onEmployeeChange: (employeeId: string | null) => void
 }
 
 export default function ScheduleHeader({
@@ -18,10 +27,13 @@ export default function ScheduleHeader({
   onPreviousWeek,
   onNextWeek,
   onTodayClick,
-  onViewModeChange
+  onViewModeChange,
+  employees,
+  selectedEmployeeId,
+  onEmployeeChange
 }: ScheduleHeaderProps) {
   return (
-    <div className="mb-1 flex justify-between items-center">
+    <div className="mb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
       <div className="flex items-center">
         <h1 className="text-2xl font-semibold text-gray-900 mr-4">Schedule</h1>
         
@@ -46,21 +58,46 @@ export default function ScheduleHeader({
         </div>
       </div>
       
-      <div className="flex space-x-2">
-        <button
-          onClick={onTodayClick}
-          className={`px-4 py-2 rounded-md border transition-colors duration-150
-            ${viewMode === 'day' ? 'bg-[#31BCFF] text-white border-[#31BCFF]' : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-100'}`}
-        >
-          Today
-        </button>
-        <button
-          onClick={() => onViewModeChange('week')}
-          className={`px-4 py-2 rounded-md border transition-colors duration-150
-            ${viewMode === 'week' ? 'bg-[#31BCFF] text-white border-[#31BCFF]' : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-100'}`}
-        >
-          Week
-        </button>
+      <div className="flex items-center space-x-4">
+        {/* Employee Filter Dropdown */}
+        <div className="w-64">
+          <select
+            value={selectedEmployeeId || ""}
+            onChange={(e) => onEmployeeChange(e.target.value === "" ? null : e.target.value)}
+            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#31BCFF]"
+          >
+            <option value="">All Employees</option>
+            {employees.map(employee => (
+              <option key={employee.id} value={employee.id}>
+                {employee.firstName} {employee.lastName}
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        {/* View Mode Toggles */}
+        <div className="flex space-x-2">
+          <button
+            onClick={() => onViewModeChange('week')}
+            className={`px-3 py-1.5 rounded-md ${
+              viewMode === 'week' 
+                ? 'bg-[#31BCFF] text-white' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Week
+          </button>
+          <button
+            onClick={() => onViewModeChange('day')}
+            className={`px-3 py-1.5 rounded-md ${
+              viewMode === 'day' 
+                ? 'bg-[#31BCFF] text-white' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Day
+          </button>
+        </div>
       </div>
     </div>
   )

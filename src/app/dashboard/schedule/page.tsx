@@ -43,6 +43,8 @@ export default function SchedulePage() {
   const [isDraggingToCreate, setIsDraggingToCreate] = useState(false);
   const [dragDate, setDragDate] = useState<Date | null>(null);
 
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+
   const startDate = startOfWeek(currentDate, { weekStartsOn: 0 })
   const endDate = endOfWeek(currentDate, { weekStartsOn: 0 })
   
@@ -52,7 +54,7 @@ export default function SchedulePage() {
     fetchEmployees()
     fetchEmployeeGroups()
     fetchShifts()
-  }, [currentDate])
+  }, [currentDate, selectedEmployeeId])
 
   const fetchEmployees = async () => {
     try {
@@ -79,7 +81,12 @@ export default function SchedulePage() {
       const start = format(startDate, 'yyyy-MM-dd')
       const end = format(endDate, 'yyyy-MM-dd')
       
-      const res = await fetch(`/api/shifts?startDate=${start}&endDate=${end}`)
+      let url = `/api/shifts?startDate=${start}&endDate=${end}`
+      if (selectedEmployeeId) {
+        url += `&employeeId=${selectedEmployeeId}`
+      }
+      
+      const res = await fetch(url)
       const data = await res.json()
       setShifts(data)
     } catch (error) {
@@ -597,6 +604,10 @@ export default function SchedulePage() {
     setViewMode('day')
   }
 
+  const handleEmployeeChange = (employeeId: string | null) => {
+    setSelectedEmployeeId(employeeId);
+  }
+
   return (
     <div className="py-6">
       <div className="mx-auto">
@@ -608,6 +619,9 @@ export default function SchedulePage() {
           onNextWeek={handleNextWeek}
           onTodayClick={handleTodayClick}
           onViewModeChange={setViewMode}
+          employees={employees}
+          selectedEmployeeId={selectedEmployeeId}
+          onEmployeeChange={handleEmployeeChange}
         />
 
         {viewMode === 'week' ? (
@@ -618,13 +632,20 @@ export default function SchedulePage() {
             onEditShift={handleEditShift}
             onAddShift={(formData) => {
               if (formData) {
-                // We have form data from drag-to-create
                 setModalViewType('week');
+                if (selectedEmployeeId) {
+                  formData.employeeId = selectedEmployeeId;
+                }
                 setShiftInitialData(formData);
               } else {
-                // Regular add button was clicked
                 setModalViewType('week');
-                setShiftInitialData(null);
+                if (selectedEmployeeId) {
+                  setShiftInitialData({
+                    employeeId: selectedEmployeeId,
+                  });
+                } else {
+                  setShiftInitialData(null);
+                }
               }
               setShowShiftModal(true);
             }}
