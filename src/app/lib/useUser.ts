@@ -2,26 +2,36 @@ import { useState, useEffect } from 'react'
 
 interface User {
   id: string
-  email: string
   firstName: string
   lastName: string
+  email: string
   role: string
 }
 
 export function useUser() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch('/api/auth/user')
-        if (res.ok) {
-          const data = await res.json()
-          setUser(data.user)
+        const response = await fetch('/api/me')
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            setUser(null)
+            setLoading(false)
+            return
+          }
+          throw new Error('Failed to fetch user data')
         }
-      } catch (error) {
-        console.error('Error fetching user:', error)
+        
+        const userData = await response.json()
+        setUser(userData)
+      } catch (err) {
+        console.error('Error fetching user:', err)
+        setError(err instanceof Error ? err : new Error('Unknown error'))
       } finally {
         setLoading(false)
       }
@@ -30,5 +40,5 @@ export function useUser() {
     fetchUser()
   }, [])
 
-  return { user, loading }
+  return { user, loading, error }
 }

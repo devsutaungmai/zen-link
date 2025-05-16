@@ -5,18 +5,33 @@ interface SpanningShiftCardProps {
   date: string
   employees: Employee[]
   onEdit: (shift: Shift) => void
+  index?: number  // Position in the overlapping group
+  total?: number  // Total shifts in the overlapping group
 }
 
-export default function SpanningShiftCard({ shift, date, employees, onEdit }: SpanningShiftCardProps) {
+export default function SpanningShiftCard({ 
+  shift, 
+  date, 
+  employees, 
+  onEdit, 
+  index = 0, 
+  total = 1 
+}: SpanningShiftCardProps) {
   const { top, height } = getShiftPosition(shift.startTime, shift.endTime)
   const employee = employees.find(e => e.id === shift.employeeId)
   
+  // Calculate horizontal position for overlapping shifts
+  const cardWidth = total > 1 ? `calc((100% - 16px) / ${total})` : 'calc(100% - 16px)'
+  const horizontalOffset = index * (100 / total)
+  
   return (
     <div
-      className="absolute left-2 right-2 shift-card pointer-events-auto z-20"
+      className="absolute shift-card pointer-events-auto z-20"
       style={{
         top: `${top}px`,
         height: `${height}px`,
+        width: cardWidth,
+        left: `calc(8px + ${horizontalOffset}%)`,
         minHeight: '20px',
         backgroundColor: shift.approved ? undefined : '#31BCFF',
         borderColor: shift.approved ? '#84cc16' : '#31BCFF',
@@ -26,16 +41,19 @@ export default function SpanningShiftCard({ shift, date, employees, onEdit }: Sp
         boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
         padding: '0.5rem',
         cursor: 'pointer',
+        overflow: 'hidden',
+        // Add a subtle shadow to help distinguish overlapping cards
+        zIndex: 20 + index, 
       }}
       onDoubleClick={(e) => {
         e.stopPropagation()
         e.preventDefault()
         onEdit(shift)
       }}
-      title="Double-click to edit"
+      title={`${shift.startTime.substring(0, 5)} - ${shift.endTime.substring(0, 5)} | ${employee ? `${employee.firstName} ${employee.lastName}` : 'Unassigned'}`}
       draggable={false}
     >
-      <div className="font-medium text-sm">
+      <div className="font-medium text-sm truncate">
         {shift.startTime.substring(0, 5)} - {shift.endTime.substring(0, 5)}
       </div>
       {height > 40 && (
@@ -53,30 +71,30 @@ export default function SpanningShiftCard({ shift, date, employees, onEdit }: Sp
 }
 
 const getShiftPosition = (startTime: string, endTime: string) => {
-    const startParts = startTime.split(':');
-    const endParts = endTime.split(':');
+  const startParts = startTime.split(':');
+  const endParts = endTime.split(':');
 
-    const startHour = parseInt(startParts[0], 10);
-    const startMinutes = parseInt(startParts[1], 10);
+  const startHour = parseInt(startParts[0], 10);
+  const startMinutes = parseInt(startParts[1], 10);
 
-    const endHour = parseInt(endParts[0], 10);
-    const endMinutes = parseInt(endParts[1], 10);
+  const endHour = parseInt(endParts[0], 10);
+  const endMinutes = parseInt(endParts[1], 10);
 
-    // Calculate offsets in minutes since midnight
-    const startOffset = startHour * 60 + startMinutes;
-    let endOffset = endHour * 60 + endMinutes;
-    
-    // If end time is earlier than start time, assume it's the next day
-    if (endOffset < startOffset) {
-      endOffset += 24 * 60; // Add 24 hours
-    }
+  // Calculate offsets in minutes since midnight
+  const startOffset = startHour * 60 + startMinutes;
+  let endOffset = endHour * 60 + endMinutes;
+  
+  // If end time is earlier than start time, assume it's the next day
+  if (endOffset < startOffset) {
+    endOffset += 24 * 60; // Add 24 hours
+  }
 
-    // Height calculation: 1 hour = 60px
-    const height = ((endOffset - startOffset) / 60) * 60;
-    
-    // Top position: offset from the top of the schedule grid
-    // Assuming the grid starts at hour 1 (not 0)
-    const top = ((startOffset - 60) / 60) * 60; // Subtract 60 minutes to adjust for grid starting at hour 1
-    
-    return { top, height };
-  };
+  // Height calculation: 1 hour = 60px
+  const height = ((endOffset - startOffset) / 60) * 60;
+  
+  // Top position: offset from the top of the schedule grid
+  // Assuming the grid starts at hour 1 (not 0)
+  const top = ((startOffset - 60) / 60) * 60; // Subtract 60 minutes to adjust for grid starting at hour 1
+  
+  return { top, height };
+};

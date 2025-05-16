@@ -17,7 +17,8 @@ import {
 import { useRouter } from 'next/navigation'
 import { useUser } from '@/app/lib/useUser'
 
-const navigation = [
+// Define navigation items
+const adminNavigation = [
   { name: 'Home', href: '/dashboard', icon: HomeIcon },
   { name: 'Users', href: '/dashboard/users', icon: UsersIcon },
   {
@@ -25,8 +26,8 @@ const navigation = [
     icon: UserGroupIcon,
     children: [
       { name: 'Departments', href: '/dashboard/departments' },
-      { name: 'Empoloyees', href: '/dashboard/employees' },
-      { name: 'Empoloyees Groups', href: '/dashboard/employee-groups' },
+      { name: 'Employees', href: '/dashboard/employees' },
+      { name: 'Employee Groups', href: '/dashboard/employee-groups' },
       { name: 'Contracts', href: '/dashboard/employees' },
       { name: 'Documents', href: '/dashboard/departments' },
     ],
@@ -42,6 +43,12 @@ const navigation = [
   { name: 'Settings', href: '/dashboard/settings', icon: Cog6ToothIcon },
 ]
 
+// Employee navigation - only shows schedule
+const employeeNavigation = [
+  { name: 'Home', href: '/dashboard', icon: HomeIcon },
+  { name: 'Schedule', href: '/dashboard/schedule', icon: ClockIcon },
+]
+
 interface DashboardNavbarProps {
   setMobileMenuOpen: (open: boolean) => void
 }
@@ -50,6 +57,9 @@ export default function DashboardNavbar({ setMobileMenuOpen }: DashboardNavbarPr
   const router = useRouter()
   const { user, loading } = useUser()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  console.log('User:', user);
+  // Determine which navigation to show based on user role
+  const navigation = user?.role === 'EMPLOYEE' ? employeeNavigation : adminNavigation
 
   const handleLogout = async () => {
     try {
@@ -87,7 +97,7 @@ export default function DashboardNavbar({ setMobileMenuOpen }: DashboardNavbarPr
           </Link>
         </div>
 
-        {/* Center section with navigation */}
+        {/* Center section with navigation - conditionally rendered based on user role */}
         <div className="hidden md:flex items-center space-x-8">
           {navigation.map((item) => 
             !item.children ? (
@@ -186,18 +196,6 @@ export default function DashboardNavbar({ setMobileMenuOpen }: DashboardNavbarPr
                       </Link>
                     )}
                   </Menu.Item>
-                  <Menu.Item>
-                    {({ active }) => (
-                      <Link
-                        href="/dashboard/account"
-                        className={`${
-                          active ? 'bg-gray-100 text-[#31BCFF]' : 'text-gray-700'
-                        } flex items-center px-4 py-2 text-sm`}
-                      >
-                        Account Settings
-                      </Link>
-                    )}
-                  </Menu.Item>
                   <div className="border-t border-gray-100" />
                   <Menu.Item>
                     {({ active }) => (
@@ -218,7 +216,7 @@ export default function DashboardNavbar({ setMobileMenuOpen }: DashboardNavbarPr
         </div>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile menu - also conditionally rendered based on user role */}
       <Transition
         show={isMenuOpen}
         enter="transition ease-out duration-100 transform"

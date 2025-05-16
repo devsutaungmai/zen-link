@@ -9,7 +9,7 @@ interface WeekViewProps {
   shifts: Shift[]
   employees: Employee[]
   onEditShift: (shift: Shift) => void
-  onAddShift: (formData?: any) => void  // Change to accept form data
+  onAddShift: (formData?: any) => void
 }
 
 export default function WeekView({
@@ -106,6 +106,45 @@ export default function WeekView({
     return shifts.filter(shift => shift.date.substring(0, 10) === date).length
   }
 
+  const groupOverlappingShifts = (shifts: Shift[]) => {
+    // Sort shifts by start time to ensure consistent grouping
+    const sortedShifts = [...shifts].sort((a, b) => {
+      // First by start time
+      if (a.startTime < b.startTime) return -1;
+      if (a.startTime > b.startTime) return 1;
+      
+      // Then by end time if start times are equal
+      return a.endTime < b.endTime ? -1 : 1;
+    });
+
+    const groups: Shift[][] = [];
+    
+    for (const shift of sortedShifts) {
+      // Find if this shift overlaps with any existing groups
+      let addedToGroup = false;
+      
+      for (const group of groups) {
+        const overlapsWithGroup = group.some(groupShift => {
+          // Check if shifts overlap
+          return (shift.startTime < groupShift.endTime && shift.endTime > groupShift.startTime);
+        });
+        
+        if (overlapsWithGroup) {
+          group.push(shift);
+          addedToGroup = true;
+          break;
+        }
+      }
+      
+      // If not added to any existing group, create a new group
+      if (!addedToGroup) {
+        groups.push([shift]);
+      }
+    }
+    
+    return groups;
+  };
+
   return (
     <div className="overflow-hidden">
       <div 
@@ -125,6 +164,9 @@ export default function WeekView({
               const dayShifts = shifts.filter(shift => shift.date.substring(0, 10) === formattedDate)
               const isToday = new Date().toDateString() === date.toDateString()
               
+              // Group overlapping shifts
+              const shiftGroups = groupOverlappingShifts(dayShifts);
+              
               return (
                 <div key={i} className="relative">
                   <div className={`p-3 font-medium text-center border-r h-[72px] ${isToday ? 'bg-blue-50' : ''}`}>
@@ -133,7 +175,7 @@ export default function WeekView({
                     </div>
                     <div className="text-sm text-gray-900">
                       <PlusIcon className="inline h-4 w-4 mr-1" />
-                      {getDayShiftCount(formattedDate)} Shifts
+                      {dayShifts.length} Shifts
                     </div>
                   </div>
                   
@@ -159,15 +201,21 @@ export default function WeekView({
                       />
                     ))}
                     
-                    {/* Render shifts */}
-                    {dayShifts.map(shift => (
-                      <SpanningShiftCard 
-                        key={shift.id} 
-                        shift={shift} 
-                        date={formattedDate}
-                        employees={employees}
-                        onEdit={onEditShift}
-                      />
+                    {/* Render grouped shifts */}
+                    {shiftGroups.map((group, groupIndex) => (
+                      <React.Fragment key={`group-${groupIndex}`}>
+                        {group.map((shift, shiftIndex) => (
+                          <SpanningShiftCard 
+                            key={shift.id} 
+                            shift={shift} 
+                            date={formattedDate}
+                            employees={employees}
+                            onEdit={onEditShift}
+                            index={shiftIndex}
+                            total={group.length}
+                          />
+                        ))}
+                      </React.Fragment>
                     ))}
                   </div>
                 </div>
