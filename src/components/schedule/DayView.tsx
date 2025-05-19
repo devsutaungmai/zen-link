@@ -1,60 +1,179 @@
+import React, { useState, useRef } from 'react'
 import { format } from 'date-fns'
-import { PlusIcon } from '@heroicons/react/24/outline'
-
+import SpanningShiftCard from './SpanningShiftCard'
+import HourColumn from './HourColumn'
+import { useUser } from '@/app/lib/useUser'
+import { Shift, Employee } from '@prisma/client'
 interface DayViewProps {
   selectedDate: Date
   shifts: Shift[]
-  onAddShift: () => void
+  onAddShift: (formData?: any) => void
+  onEditShift: (shift: Shift) => void
+  employees: Employee[]
 }
 
-export default function DayView({ selectedDate, shifts, onAddShift }: DayViewProps) {
+export default function DayView({ 
+  selectedDate, 
+  shifts, 
+  onAddShift, 
+  onEditShift, 
+  employees = []
+}: DayViewProps) {
+  const { user } = useUser()
+  const isEmployee = user?.role === 'EMPLOYEE'
+  
+  const [isDraggingToCreate, setIsDraggingToCreate] = useState(false)
+  const [dragStartHour, setDragStartHour] = useState<number | null>(null)
+  const [dragEndHour, setDragEndHour] = useState<number | null>(null)
+
+  const handleDragStartToCreate = (hour: number) => {
+    if (isEmployee) return
+    
+    setDragStartHour(hour)
+    setDragEndHour(hour)
+    setIsDraggingToCreate(true)
+  }
+
+  const handleDragOverToCreate = (hour: number) => {
+    if (isDraggingToCreate) {
+      setDragEndHour(hour)
+    }
+  }
+
+  const handleDragEndToCreate = () => {
+    if (isEmployee) return
+    
+    if (dragStartHour !== null && dragEndHour !== null) {
+      const startHour = Math.min(dragStartHour, dragEndHour)
+      const endHour = Math.max(dragStartHour, dragEndHour)
+
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd')
+      const startTime = `${startHour.toString().padStart(2, '0')}:00`
+      const endTime = `${(endHour + 1).toString().padStart(2, '0')}:00` 
+
+
+      onAddShift({
+        date: formattedDate,
+        startTime,
+        endTime,
+        shiftType: 'NORMAL',
+        wage: 0,
+        wageType: 'HOURLY',
+        approved: false,
+        employeeId: '',
+        employeeGroupId: undefined,
+        note: ''
+      });
+
+      setDragStartHour(null)
+      setDragEndHour(null)
+      setIsDraggingToCreate(false)
+    }
+  }
+
+  const groupOverlappingShifts = (shifts: Shift[]) => {
+    const sortedShifts = [...shifts].sort((a, b) => {
+      // First by start time
+      if (a.startTime < b.startTime) return -1;
+      if (a.startTime > b.startTime) return 1;
+      
+      // Then by end time if start times are equal
+      return a.endTime < b.endTime ? -1 : 1;
+    });
+
+    const groups: Shift[][] = [];
+    
+    for (const shift of sortedShifts) {
+      // Find if this shift overlaps with any existing groups
+      let addedToGroup = false;
+      
+      for (const group of groups) {
+        const overlapsWithGroup = group.some(groupShift => {
+          // Check if shifts overlap
+          return (shift.startTime < groupShift.endTime && shift.endTime > groupShift.startTime);
+        });
+        
+        if (overlapsWithGroup) {
+          group.push(shift);
+          addedToGroup = true;
+          break;
+        }
+      }
+      
+      if (!addedToGroup) {
+        groups.push([shift]);
+      }
+    }
+    
+    return groups;
+  };
+
+  const formattedDate = format(selectedDate, 'yyyy-MM-dd')
+  const isToday = new Date().toDateString() === selectedDate.toDateString()
+  const shiftGroups = groupOverlappingShifts(shifts);
+
+  if (!employees) {
+    return (
+      <div className="mt-4 overflow-hidden">
+        <div className="text-center p-4">Loading employee data...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="mt-4">
-      <h2 className="text-xl font-bold text-gray-900 mb-4">
-        Schedule for {format(selectedDate, 'EEEE, MMMM d, yyyy')}
-      </h2>
-      <div className="border rounded-lg bg-white shadow">
-        <table className="w-full table-fixed border-collapse text-xs">
-          <thead>
-            <tr>
-              <th className="bg-gray-100 border-b border-r w-28 py-1 px-2 text-left font-semibold text-gray-700">Hour</th>
-              {Array.from({ length: 24 }, (_, hour) => (
-                <th
+    <div className="mt-4 overflow-hidden">
+      <div className="min-w-full">
+        <div className="grid grid-cols-[200px_1fr] border-b">
+          <HourColumn />
+          
+          <div className="relative day-column">
+            <div className={`p-3 font-medium text-center border-r h-[72px] ${isToday ? 'bg-blue-50' : ''}`}>
+              <div className={`text-gray-950 font-bold ${isToday ? 'text-blue-700' : ''}`}>
+                {isToday ? <span className="text-blue-700">Today</span> : format(selectedDate, 'EEEE, MMMM d, yyyy')}
+              </div>
+              <div className="text-sm text-gray-900">
+                <span className="ml-2">{shifts.length} Shifts</span>
+              </div>
+            </div>
+            
+            <div className="relative">
+              {Array.from({ length: 23 }, (_, hour) => hour + 1).map(hour => (
+                <div
                   key={hour}
-                  className="bg-gray-100 border-b border-r py-1 px-0.5 font-medium text-center text-gray-700 w-8"
-                  style={{ width: '32px', minWidth: '32px', maxWidth: '32px' }}
-                >
-                  {hour.toString().padStart(2, '0')}
-                </th>
+                  className={`border-b border-r p-3 h-[60px] relative ${!isEmployee ? 'hover:bg-gray-50' : ''}`}
+                  onMouseDown={() => handleDragStartToCreate(hour)}
+                  onMouseOver={() => handleDragOverToCreate(hour)}
+                  onMouseUp={() => handleDragEndToCreate()}
+                  style={{
+                    backgroundColor: 
+                      isDraggingToCreate && 
+                      ((hour >= Math.min(dragStartHour || 0, dragEndHour || 0) && 
+                        hour <= Math.max(dragStartHour || 0, dragEndHour || 0)))
+                        ? 'rgba(49, 188, 255, 0.2)'
+                        : undefined
+                  }}
+                />
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {Array.from({ length: 23 }, (_, hour) => (
-              <tr key={hour} className="hover:bg-gray-50">
-                <td className="border-b border-r bg-gray-50 px-2 py-1 font-medium text-xs text-gray-800 whitespace-nowrap">
-                  {hour}:00
-                </td>
-                {Array.from({ length: 24 }, (_, hourIndex) => (
-                  <td
-                    key={hourIndex}
-                    className="border-b border-r px-0.5 py-0.5 min-h-[20px] relative group"
-                    style={{ width: '32px', minWidth: '32px', maxWidth: '32px', height: '28px' }}
-                  >
-                    <button
-                      onClick={onAddShift}
-                      className="rounded-full h-4 w-4 flex items-center justify-center bg-gray-100 hover:bg-[#31BCFF]/10 text-gray-400 hover:text-[#31BCFF] border border-gray-200 mx-auto opacity-0 group-hover:opacity-100 transition"
-                      title="Add shift"
-                      style={{ fontSize: '10px' }}
-                    >
-                      <PlusIcon className="h-2 w-2" />
-                    </button>
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              
+              {/* Render grouped shifts */}
+              {shiftGroups.map((group, groupIndex) => (
+                <React.Fragment key={`group-${groupIndex}`}>
+                  {group.map((shift, shiftIndex) => (
+                    <SpanningShiftCard 
+                      key={shift.id} 
+                      shift={shift} 
+                      date={formattedDate}
+                      employees={employees}
+                      onEdit={onEditShift}
+                      index={shiftIndex}
+                      total={group.length}
+                    />
+                  ))}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

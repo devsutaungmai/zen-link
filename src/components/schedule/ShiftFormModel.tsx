@@ -45,8 +45,8 @@ export default function ShiftFormModal({
           onSubmit={onSubmit}
           onCancel={onClose}
           loading={loading}
-          showEmployee={viewType === 'week'}
-          showStartTime={viewType === 'week'}
+          showEmployee={true} // Always show employee selector
+          showStartTime={viewType === 'week'} // Only hide startTime for day view if needed
           showDate={true}
         />
       </DialogContent>

@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { ShiftType, WageType } from '@prisma/client'
+import { useUser } from '@/app/lib/useUser'
 
-// Add date formatting utilities
 const formatDateForDisplay = (dateStr: string): string => {
   try {
     const date = new Date(dateStr);
@@ -63,6 +63,9 @@ export default function ShiftForm({
   showStartTime = true,
   showDate = true,
 }: ShiftFormProps) {
+  const { user } = useUser() // Get the current user
+  const isEmployee = user?.role === 'EMPLOYEE'
+
   const today = new Date()
   const todayString = today.toISOString().split('T')[0]
 
@@ -97,6 +100,12 @@ export default function ShiftForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Block submission if user is an employee
+    if (isEmployee) {
+      return
+    }
+    
     // Convert the display date back to YYYY-MM-DD for submission
     const submissionData = {
       ...formData,
@@ -143,7 +152,16 @@ export default function ShiftForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        {/* Date - Changed to text input with formatted display */}
+        {/* If user is employee, add a notice at the top */}
+        {isEmployee && (
+          <div className="sm:col-span-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+            <p className="text-sm text-yellow-700">
+              As an employee, you can view shifts but cannot create or edit them.
+            </p>
+          </div>
+        )}
+      
+        {/* Form fields with disabled attribute based on role */}
         {showDate && (
           <div>
             <label className="block text-sm font-medium text-gray-700">
@@ -153,8 +171,9 @@ export default function ShiftForm({
               type="text"
               value={displayDate}
               onChange={handleDateChange}
+              disabled={isEmployee} // Disable if employee
               placeholder="DD/MM/YYYY"
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF]"
+              className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               required
             />
             <p className="mt-1 text-xs text-gray-500">Format: DD/MM/YYYY</p>
@@ -169,7 +188,8 @@ export default function ShiftForm({
           <select
             value={formData.shiftType}
             onChange={(e) => setFormData({ ...formData, shiftType: e.target.value as ShiftType })}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF]"
+            disabled={isEmployee} // Disable if employee
+            className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             required
           >
             {Object.values(ShiftType).map((type) => (
@@ -190,7 +210,8 @@ export default function ShiftForm({
               type="time"
               value={formData.startTime}
               onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF]"
+              disabled={isEmployee} // Disable if employee
+              className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               required
             />
           </div>
@@ -205,7 +226,8 @@ export default function ShiftForm({
             type="time"
             value={formData.endTime}
             onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF]"
+            disabled={isEmployee} // Disable if employee
+            className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             required
           />
         </div>
@@ -217,7 +239,8 @@ export default function ShiftForm({
             <select
               value={formData.employeeId || ''}
               onChange={(e) => setFormData({ ...formData, employeeId: e.target.value || undefined })}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF]"
+              disabled={isEmployee} // Disable if employee
+              className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             >
               <option value="">Select an employee</option>
               {employees.map((employee) => (
@@ -272,7 +295,8 @@ export default function ShiftForm({
             value={formData.note || ''}
             onChange={(e) => setFormData({ ...formData, note: e.target.value || undefined })}
             rows={3}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF]"
+            disabled={isEmployee} // Disable if employee
+            className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
           />
         </div>
 
@@ -301,10 +325,13 @@ export default function ShiftForm({
         </button>
         <button
           type="submit"
-          disabled={loading}
-          className="px-4 py-2 text-sm font-medium text-white bg-[#31BCFF] border border-transparent rounded-md hover:bg-[#31BCFF]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#31BCFF] disabled:opacity-50"
+          disabled={loading || isEmployee} // Disable if employee or loading
+          className={`px-4 py-2 text-sm font-medium text-white border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#31BCFF] disabled:opacity-50 ${
+            isEmployee ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#31BCFF] hover:bg-[#31BCFF]/90'
+          }`}
+          title={isEmployee ? "Employees cannot create or edit shifts" : ""}
         >
-          {loading ? 'Saving...' : 'Save'}
+          {loading ? 'Saving...' : isEmployee ? 'Not Authorized' : 'Save'}
         </button>
       </div>
     </form>

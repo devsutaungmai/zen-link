@@ -2,15 +2,9 @@
 
 import React, { useState, useEffect } from 'react'
 import { format, addDays, addWeeks, subWeeks, startOfWeek, endOfWeek } from 'date-fns'
-import { 
-  PlusIcon, 
-  ArrowLeftIcon, 
-  ArrowRightIcon,  
-} from '@heroicons/react/24/outline'
+import { Employee, EmployeeGroup, Shift } from '@prisma/client'
 
 import Swal from 'sweetalert2'
-import ShiftGridCard from '@/components/ShiftGridCard'
-import ShiftForm from '@/components/ShiftForm'
 import ScheduleHeader from '@/components/schedule/ScheduleHeader'
 import WeekView from '@/components/schedule/WeekView'
 import DayView from '@/components/schedule/DayView'
@@ -199,7 +193,6 @@ export default function SchedulePage() {
   const handleShiftFormSubmit = async (formData: any) => {
     setLoading(true);
     try {
-      // If we have an ID, this is an update
       const method = formData.id ? 'PUT' : 'POST';
       const url = formData.id 
         ? `/api/shifts/${formData.id}` 
@@ -318,15 +311,12 @@ export default function SchedulePage() {
   }
 
   const handleDragStart = (e: React.DragEvent, shift: Shift, employeeId: string) => {
-    // Set data for the drag operation
     setDraggedShift(shift);
     setDragSource(employeeId);
     
-    // Set a custom drag image/ghost
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', shift.id);
-    
-    // Add a CSS class to show this is being dragged
+
     const target = e.currentTarget as HTMLElement;
     setTimeout(() => {
       target.classList.add('opacity-50');
@@ -337,13 +327,11 @@ export default function SchedulePage() {
     setDraggedShift(null);
     setDragSource(null);
     
-    // Remove drag styling
     const target = e.currentTarget as HTMLElement;
     target.classList.remove('opacity-50');
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-    // Necessary to allow dropping
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
   };
@@ -355,7 +343,6 @@ export default function SchedulePage() {
       return;
     }
     
-    // Make sure we're dropping on the same date (for week view)
     const shiftDate = draggedShift.date.substring(0, 10);
     const targetDate = format(date, 'yyyy-MM-dd');
     if (shiftDate !== targetDate) {
@@ -363,7 +350,6 @@ export default function SchedulePage() {
       return;
     }
     
-    // Confirm the exchange
     const result = await Swal.fire({
       title: 'Exchange Shift',
       text: `Are you sure you want to reassign this shift to ${
@@ -378,7 +364,6 @@ export default function SchedulePage() {
     
     if (result.isConfirmed) {
       try {
-        // Call the exchange API
         const res = await fetch(`/api/shifts/${draggedShift.id}/exchange`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -416,10 +401,8 @@ export default function SchedulePage() {
   const getDragOverClass = (employeeId: string, date: string) => {
     if (!draggedShift || !dragSource) return '';
     
-    // Don't highlight the source
     if (dragSource === employeeId) return '';
     
-    // Only highlight same day cells
     if (draggedShift.date.substring(0, 10) !== date) return '';
     
     return 'bg-blue-50 border-blue-300 border-dashed';
@@ -447,7 +430,6 @@ export default function SchedulePage() {
     console.log("Edit shift called with:", shift);
     setModalViewType('week');
     
-    // Make a copy of the shift to avoid reference issues
     const shiftData = {
       ...shift,
       date: shift.date.substring(0, 10),
@@ -654,10 +636,29 @@ export default function SchedulePage() {
          <DayView
             selectedDate={selectedDate}
             shifts={shifts.filter(shift => shift.date.substring(0, 10) === format(selectedDate, 'yyyy-MM-dd'))}
-            onAddShift={() => {
-              setModalViewType('day')
-              setShiftInitialData(null)
-              setShowShiftModal(true)
+            employees={employees}
+            onEditShift={handleEditShift}
+            onAddShift={(formData) => {
+              setModalViewType('day');
+              
+              if (formData) {
+                if (selectedEmployeeId) {
+                  formData.employeeId = selectedEmployeeId;
+                }
+                setShiftInitialData(formData);
+              } else {
+                if (selectedEmployeeId) {
+                  setShiftInitialData({
+                    date: format(selectedDate, 'yyyy-MM-dd'),
+                    employeeId: selectedEmployeeId,
+                  });
+                } else {
+                  setShiftInitialData({
+                    date: format(selectedDate, 'yyyy-MM-dd'),
+                  });
+                }
+              }
+              setShowShiftModal(true);
             }}
           />
         )}

@@ -12,13 +12,13 @@ interface SpanningShiftCardProps {
 export default function SpanningShiftCard({ 
   shift, 
   date, 
-  employees, 
+  employees = [], // Provide a default empty array 
   onEdit, 
   index = 0, 
   total = 1 
 }: SpanningShiftCardProps) {
   const { top, height } = getShiftPosition(shift.startTime, shift.endTime)
-  const employee = employees.find(e => e.id === shift.employeeId)
+  const employee = employees && employees.length > 0 ? employees.find(e => e.id === shift.employeeId) : null
   
   // Calculate horizontal position for overlapping shifts
   const cardWidth = total > 1 ? `calc((100% - 16px) / ${total})` : 'calc(100% - 16px)'
