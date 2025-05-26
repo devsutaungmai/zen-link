@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { PlusIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import Swal from 'sweetalert2'
-import Pagination from '@/app/components/Pagination'
 
 interface Employee {
   id: string
@@ -24,8 +23,9 @@ interface Employee {
 }
 
 export default function EmployeesPage() {
-  const [employees, setEmployees] = useState<Employee[]>([])
+  const [employees, setEmployees] = useState<Employee[]>([]) // Initialize as empty array
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -33,21 +33,39 @@ export default function EmployeesPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
-  useEffect(() => {
-    fetchEmployees()
-  }, [])
-
   const fetchEmployees = async () => {
     try {
-      const res = await fetch('/api/employees')
-      const data = await res.json()
-      setEmployees(data)
+      setLoading(true)
+      setError(null)
+      
+      const response = await fetch('/api/employees')
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to fetch employees')
+      }
+      
+      const data = await response.json()
+      
+      // Ensure data is an array
+      if (Array.isArray(data)) {
+        setEmployees(data)
+      } else {
+        console.error('Expected array but got:', data)
+        throw new Error('Invalid data format received from server')
+      }
     } catch (error) {
       console.error('Error fetching employees:', error)
+      setError(error.message)
+      setEmployees([])
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchEmployees()
+  }, [])
 
   const handleDelete = async (id: string) => {
     try {
@@ -97,26 +115,34 @@ export default function EmployeesPage() {
     setShowInviteModal(true);
   };
 
-  const filteredEmployees = employees.filter(employee => 
-    `${employee.firstName} ${employee.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.employeeNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.department.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (employee.employeeGroup?.name && employee.employeeGroup.name.toLowerCase().includes(searchTerm.toLowerCase()))
-  )
-
-  const paginatedEmployees = filteredEmployees.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  )
-
-  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage)
-
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString()
   }
 
+  // Show loading state
   if (loading) {
-    return <div className="flex items-center justify-center h-32">Loading...</div>
+    return (
+      <div className="p-6">
+        <div className="text-center">Loading employees...</div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="text-center text-red-600">
+          Error: {error}
+          <button 
+            onClick={fetchEmployees}
+            className="ml-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -172,7 +198,7 @@ export default function EmployeesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {paginatedEmployees.map((employee) => (
+                  {employees.map((employee) => (
                     <tr key={employee.id}>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
                         {employee.firstName} {employee.lastName}
