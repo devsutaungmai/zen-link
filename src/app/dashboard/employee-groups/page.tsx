@@ -32,11 +32,24 @@ export default function EmployeeGroupsPage() {
       setLoading(true)
       setError(null)
       const res = await fetch('/api/employee-groups')
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`)
+      }
+      
       const data = await res.json()
-      setEmployeeGroups(data)
+      
+      if (Array.isArray(data)) {
+        setEmployeeGroups(data)
+      } else {
+        console.error('API did not return an array:', data)
+        setEmployeeGroups([])
+        setError('Invalid response format from server')
+      }
     } catch (error) {
       console.error('Error fetching employee groups:', error)
       setError('Failed to load employee groups. Please try again later.')
+      setEmployeeGroups([])
     } finally {
       setLoading(false)
     }

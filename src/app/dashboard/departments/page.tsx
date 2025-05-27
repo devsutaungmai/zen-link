@@ -32,10 +32,23 @@ export default function DepartmentsPage() {
   const fetchDepartments = async () => {
     try {
       const res = await fetch('/api/departments')
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`)
+      }
+      
       const data = await res.json()
-      setDepartments(data)
+      
+      // Ensure data is an array before setting it
+      if (Array.isArray(data)) {
+        setDepartments(data)
+      } else {
+        console.error('API did not return an array:', data)
+        setDepartments([])
+      }
     } catch (error) {
       console.error('Error fetching departments:', error)
+      setDepartments([]) // Set empty array on error
     } finally {
       setLoading(false)
     }
@@ -82,13 +95,6 @@ export default function DepartmentsPage() {
       })
     }
   }
-
-  const filteredDepartments = departments.filter(department => 
-    department.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (department.number && department.number.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    department.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    department.country.toLowerCase().includes(searchTerm.toLowerCase())
-  )
 
   if (loading) {
     return <div className="flex items-center justify-center h-32">Loading...</div>
@@ -147,7 +153,7 @@ export default function DepartmentsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {filteredDepartments.map((department) => (
+                  {departments.map((department) => (
                     <tr key={department.id}>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
                         {department.name}

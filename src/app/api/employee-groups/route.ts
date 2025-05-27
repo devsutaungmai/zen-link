@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/app/lib/prisma'
+import { requireAuth } from '@/app/lib/auth'
 
 export async function GET() {
   try {
+    const user = await requireAuth()
+    
     const employeeGroups = await prisma.employeeGroup.findMany({
+      where: {
+        businessId: user.businessId
+      },
       include: {
         _count: {
           select: { employees: true }
@@ -26,6 +32,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const user = await requireAuth()
     const data = await request.json()
     
     if (!data.name || !data.salaryCode) {
@@ -42,6 +49,7 @@ export async function POST(request: Request) {
         wagePerShift: data.wagePerShift || 0,
         defaultWageType: data.defaultWageType || 'HOURLY',
         salaryCode: data.salaryCode,
+        businessId: user.businessId,
       }
     })
 

@@ -36,6 +36,8 @@ model Business {
   employeesCount Int
   users         User[]
   invitations   Invitation[]
+  departments   Department[]
+  employeeGroups EmployeeGroup[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -78,15 +80,20 @@ enum WageType {
 
 model EmployeeGroup {
   id               String       @id @default(cuid())
-  name             String       @unique
+  name             String       
   hourlyWage       Float
   wagePerShift     Float
   defaultWageType  WageType     @default(HOURLY)
-  salaryCode       String       @unique
+  salaryCode       String       
+  businessId       String
+  business         Business     @relation(fields: [businessId], references: [id])
   employees        Employee[]   @relation("EmployeeToGroup")
   shifts           Shift[]
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
+
+  @@unique([name, businessId])
+  @@unique([salaryCode, businessId])
 }
 
 model Department {
@@ -99,6 +106,8 @@ model Department {
   city        String
   phone       String
   country     String
+  businessId  String
+  business    Business   @relation(fields: [businessId], references: [id])
   employees   Employee[]
   projects    Project[]
   createdAt   DateTime   @default(now())
