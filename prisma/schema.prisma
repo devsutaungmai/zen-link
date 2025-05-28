@@ -179,7 +179,7 @@ model Shift {
   id              String      @id @default(cuid())
   date            DateTime
   startTime       String    
-  endTime         String   
+  endTime         String?   
   employee        Employee?   @relation(fields: [employeeId], references: [id])
   employeeId      String?
   employeeGroup   EmployeeGroup? @relation(fields: [employeeGroupId], references: [id])

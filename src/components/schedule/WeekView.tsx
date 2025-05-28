@@ -114,7 +114,9 @@ export default function WeekView({
       if (a.startTime > b.startTime) return 1;
       
       // Then by end time if start times are equal
-      return a.endTime < b.endTime ? -1 : 1;
+      const aEndTime = a.endTime || '23:59'; // Use end of day for active shifts
+      const bEndTime = b.endTime || '23:59';
+      return aEndTime < bEndTime ? -1 : 1;
     });
 
     const groups: Shift[][] = [];
@@ -125,8 +127,10 @@ export default function WeekView({
       
       for (const group of groups) {
         const overlapsWithGroup = group.some(groupShift => {
-          // Check if shifts overlap
-          return (shift.startTime < groupShift.endTime && shift.endTime > groupShift.startTime);
+          // Check if shifts overlap - handle null endTime
+          const shiftEndTime = shift.endTime || '23:59';
+          const groupShiftEndTime = groupShift.endTime || '23:59';
+          return (shift.startTime < groupShiftEndTime && shiftEndTime > groupShift.startTime);
         });
         
         if (overlapsWithGroup) {

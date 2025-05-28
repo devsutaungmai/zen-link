@@ -54,6 +54,20 @@ export async function GET(request: Request) {
 export async function POST(req: Request) {
   try {
     const data = await req.json();
+    console.log('Received shift data:', JSON.stringify(data, null, 2));
+
+    // If endTime is not provided (punch clock scenario), create a simple shift
+    if (!data.endTime) {
+      console.log('Creating active shift without endTime');
+      const shift = await prisma.shift.create({
+        data: {
+          ...data,
+          date: new Date(data.date), // Convert to Date object
+          endTime: null, // No end time for active shifts
+        },
+      });
+      return NextResponse.json(shift);
+    }
 
     const startHour = parseInt(data.startTime.split(':')[0], 10);
     const endHour = parseInt(data.endTime.split(':')[0], 10);

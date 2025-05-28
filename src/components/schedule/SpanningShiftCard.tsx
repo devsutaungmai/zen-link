@@ -20,6 +20,9 @@ export default function SpanningShiftCard({
   const { top, height } = getShiftPosition(shift.startTime, shift.endTime)
   const employee = employees && employees.length > 0 ? employees.find(e => e.id === shift.employeeId) : null
   
+  // Format end time for display - show "Active" if null
+  const endTimeDisplay = shift.endTime ? shift.endTime.substring(0, 5) : 'Active'
+  
   // Calculate horizontal position for overlapping shifts
   const cardWidth = total > 1 ? `calc((100% - 16px) / ${total})` : 'calc(100% - 16px)'
   const horizontalOffset = index * (100 / total)
@@ -50,11 +53,11 @@ export default function SpanningShiftCard({
         e.preventDefault()
         onEdit(shift)
       }}
-      title={`${shift.startTime.substring(0, 5)} - ${shift.endTime.substring(0, 5)} | ${employee ? `${employee.firstName} ${employee.lastName}` : 'Unassigned'}`}
+      title={`${shift.startTime.substring(0, 5)} - ${endTimeDisplay} | ${employee ? `${employee.firstName} ${employee.lastName}` : 'Unassigned'}`}
       draggable={false}
     >
       <div className="font-medium text-sm truncate">
-        {shift.startTime.substring(0, 5)} - {shift.endTime.substring(0, 5)}
+        {shift.startTime.substring(0, 5)} - {endTimeDisplay}
       </div>
       {height > 40 && (
         <div className="text-xs mt-1 truncate">
@@ -70,15 +73,33 @@ export default function SpanningShiftCard({
   )
 }
 
-const getShiftPosition = (startTime: string, endTime: string) => {
+const getShiftPosition = (startTime: string, endTime: string | null) => {
   const startParts = startTime.split(':');
-  const endParts = endTime.split(':');
+  
+  // Handle null endTime (active shifts) - assume current time or end of day
+  let endHour: number;
+  let endMinutes: number;
+  
+  if (!endTime) {
+    // For active shifts, show until current time or end of day
+    const now = new Date();
+    endHour = now.getHours();
+    endMinutes = now.getMinutes();
+    
+    // If it's past midnight and shift started yesterday, show until end of day
+    const startHour = parseInt(startParts[0], 10);
+    if (endHour < startHour) {
+      endHour = 23;
+      endMinutes = 59;
+    }
+  } else {
+    const endParts = endTime.split(':');
+    endHour = parseInt(endParts[0], 10);
+    endMinutes = parseInt(endParts[1], 10);
+  }
 
   const startHour = parseInt(startParts[0], 10);
   const startMinutes = parseInt(startParts[1], 10);
-
-  const endHour = parseInt(endParts[0], 10);
-  const endMinutes = parseInt(endParts[1], 10);
 
   // Calculate offsets in minutes since midnight
   const startOffset = startHour * 60 + startMinutes;

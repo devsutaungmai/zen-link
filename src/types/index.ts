@@ -20,7 +20,7 @@ export interface Shift {
   id: string
   date: string
   startTime: string
-  endTime: string
+  endTime: string | null
   shiftType: 'NORMAL' | 'OVERTIME' | 'HOLIDAY' | 'TRAINING'
   wage: number
   wageType: 'HOURLY' | 'FLAT'

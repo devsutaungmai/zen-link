@@ -31,7 +31,9 @@ export default function ShiftGridCard({
       style={{ fontSize: '12px', lineHeight: '16px', minWidth: 0 }}
     >
       {/* Shift Details */}
-      <div className="font-semibold truncate">{shift.startTime.substring(0, 5)} - {shift.endTime.substring(0, 5)}</div>
+      <div className="font-semibold truncate">
+        {shift.startTime.substring(0, 5)} - {shift.endTime ? shift.endTime.substring(0, 5) : 'Active'}
+      </div>
       {shift.employeeGroup && (
         <div className="text-xs mt-1 opacity-75 truncate">{shift.employeeGroup.name}</div>
       )}
