@@ -51,6 +51,7 @@ model Employee {
   firstName       String
   lastName        String
   email           String?   @unique
+  pin             String?    @unique
   birthday        DateTime
   sex             Sex
   socialSecurityNo String?    @unique
