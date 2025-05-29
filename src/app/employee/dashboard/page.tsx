@@ -45,7 +45,6 @@ export default function EmployeeDashboard() {
 
   const fetchEmployeeData = async () => {
     try {
-      // Get current employee from cookie/session
       const res = await fetch('/api/employee/me')
       if (!res.ok) {
         if (res.status === 401) {
@@ -58,7 +57,6 @@ export default function EmployeeDashboard() {
       const employeeData = await res.json()
       setEmployee(employeeData)
 
-      // Check for active shift
       const activeShiftRes = await fetch('/api/shifts/active')
       if (activeShiftRes.ok) {
         const activeShiftData = await activeShiftRes.json()
@@ -86,7 +84,6 @@ export default function EmployeeDashboard() {
           employeeId: employee.id,
           date: new Date().toISOString().split('T')[0],
           startTime: new Date().toISOString(),
-          // Don't include endTime for active shifts
         }),
       })
 
@@ -133,7 +130,6 @@ export default function EmployeeDashboard() {
   }
 
   const handleLogout = () => {
-    // Clear the employee token cookie
     document.cookie = 'employee_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
     router.push('/employee/login')
   }

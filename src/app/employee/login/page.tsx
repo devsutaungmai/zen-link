@@ -45,8 +45,6 @@ export default function EmployeeLoginPage() {
       if (!res.ok) {
         throw new Error(data.error || 'Login failed')
       }
-
-      // Redirect to employee dashboard/punch clock
       router.push('/employee/dashboard')
     } catch (err: any) {
       setError(err.message)
