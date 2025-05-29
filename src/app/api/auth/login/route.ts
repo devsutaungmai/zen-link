@@ -55,7 +55,7 @@ export async function POST(req: Request) {
   })
 
   console.log('Cookie set:', { token, env: process.env.NODE_ENV });
-
+  console.log('User logged in:', user.id, user.email);
   return res
 }
 
