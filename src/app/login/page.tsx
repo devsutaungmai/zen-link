@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useAuth } from '@/app/lib/useAuth'
 import Link from 'next/link'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
+import { User } from 'lucide-react'
 import { APP_NAME } from '@/app/constants'
 
 export default function LoginPage() {
@@ -86,6 +87,16 @@ export default function LoginPage() {
           >
             {loading ? 'Signing in...' : 'Sign in'}
           </button>
+
+          <div className="mt-4">
+            <Link 
+              href="/employee/login"
+              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-4 rounded-md transition-colors flex items-center justify-center gap-2 border border-gray-300"
+            >
+              <User className="w-4 h-4" />
+              Time Tracker Portal
+            </Link>
+          </div>
 
           <div className="mt-4 text-center">
             <Link 

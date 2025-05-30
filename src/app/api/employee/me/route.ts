@@ -51,7 +51,9 @@ export async function GET() {
       lastName: employee.lastName,
       employeeNo: employee.employeeNo,
       department: employee.department.name,
+      departmentId: employee.departmentId,
       employeeGroup: employee.employeeGroup?.name,
+      employeeGroupId: employee.employeeGroupId,
     })
   } catch (error: any) {
     console.error('Error fetching employee data:', error)
