@@ -19,7 +19,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ backgroundColor: '#E5F1FF' }}>
       {/* Logo */}
       <Link href="/">
         <h1 className="text-3xl font-bold text-[#31BCFF] mb-8">{APP_NAME}</h1>
@@ -29,7 +29,10 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold text-gray-800 mb-6">Sign in</h2>
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold mb-2" style={{ color: '#0369A1' }}>Zenlink</h1>
+            <h2 className="text-xl font-semibold text-gray-800">Sign in</h2>
+          </div>
 
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-md text-sm">

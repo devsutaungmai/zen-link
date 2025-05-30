@@ -1,9 +1,17 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+
 export default function DevRibbon() {
-  const isDevelopment = process.env.NODE_ENV === 'development' || 
-                       process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview' ||
-                       typeof window !== 'undefined' && window.location.hostname.includes('dev.')
+  const [isDevelopment, setIsDevelopment] = useState(false)
+
+  useEffect(() => {
+    const isDevEnv = process.env.NODE_ENV === 'development' || 
+                     process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview' ||
+                     window.location.hostname.includes('dev.')
+    
+    setIsDevelopment(isDevEnv)
+  }, [])
 
   if (!isDevelopment) {
     return null
