@@ -25,6 +25,27 @@ const parseDateForSubmission = (displayDate: string): string => {
   }
 }
 
+const calculateBreakDuration = (breakStart: string, breakEnd: string): string => {
+  try {
+    const start = new Date(`2000-01-01T${breakStart}:00`);
+    const end = new Date(`2000-01-01T${breakEnd}:00`);
+    const diff = end.getTime() - start.getTime();
+    
+    if (diff <= 0) return '0 minutes';
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else {
+      return `${minutes} minutes`;
+    }
+  } catch (e) {
+    return 'Invalid time';
+  }
+}
+
 interface ShiftFormData {
   date: string
   startTime: string
@@ -73,7 +94,24 @@ export default function ShiftForm({
   const [displayDate, setDisplayDate] = useState<string>('')
 
   const [formData, setFormData] = useState<ShiftFormData>(() => {
-    return initialData || {
+    // Helper function to convert DateTime to time string
+    const convertDateTimeToTimeString = (dateTime: any): string | undefined => {
+      if (!dateTime) return undefined;
+      try {
+        const date = new Date(dateTime);
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${hours}:${minutes}`;
+      } catch (e) {
+        return undefined;
+      }
+    };
+
+    return initialData ? {
+      ...initialData,
+      breakStart: convertDateTimeToTimeString(initialData.breakStart),
+      breakEnd: convertDateTimeToTimeString(initialData.breakEnd),
+    } : {
       date: todayString,
       startTime: '09:00',
       endTime: '17:00',
@@ -88,6 +126,8 @@ export default function ShiftForm({
       note: undefined,
     }
   })
+
+  const [activeTab, setActiveTab] = useState<'basic' | 'break'>('basic')
 
   const [showBreakFields, setShowBreakFields] = useState<boolean>(() => {
     return initialData ? !!initialData.breakStart || !!initialData.breakEnd : false
@@ -150,169 +190,280 @@ export default function ShiftForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        {/* If user is employee, add a notice at the top */}
-        {isEmployee && (
-          <div className="sm:col-span-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-            <p className="text-sm text-yellow-700">
-              As an employee, you can view shifts but cannot create or edit them.
-            </p>
-          </div>
-        )}
-      
-        {/* Form fields with disabled attribute based on role */}
-        {showDate && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Date <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={displayDate}
-              onChange={handleDateChange}
-              disabled={isEmployee} // Disable if employee
-              placeholder="DD/MM/YYYY"
-              className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-              required
-            />
-            <p className="mt-1 text-xs text-gray-500">Format: DD/MM/YYYY</p>
-          </div>
-        )}
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* If user is employee, add a notice at the top */}
+      {isEmployee && (
+        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+          <p className="text-sm text-yellow-700">
+            As an employee, you can view shifts but cannot create or edit them.
+          </p>
+        </div>
+      )}
 
-        {/* Shift Type */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Shift Type <span className="text-red-500">*</span>
-          </label>
-          <select
-            value={formData.shiftType}
-            onChange={(e) => setFormData({ ...formData, shiftType: e.target.value as ShiftType })}
-            disabled={isEmployee} // Disable if employee
-            className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-            required
+      {/* Tab Navigation */}
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            type="button"
+            onClick={() => setActiveTab('basic')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+              activeTab === 'basic'
+                ? 'border-[#31BCFF] text-[#31BCFF]'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
           >
-            {Object.values(ShiftType).map((type) => (
-              <option key={type} value={type}>
-                {type.replace('_', ' ')}
-              </option>
-            ))}
-          </select>
-        </div>
+            Basic Information
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('break')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+              activeTab === 'break'
+                ? 'border-[#31BCFF] text-[#31BCFF]'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Break Time
+          </button>
+        </nav>
+      </div>
 
-        {/* Start Time */}
-        {showStartTime && (
+      {/* Tab Content */}
+      {activeTab === 'basic' && (
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          {/* Form fields with disabled attribute based on role */}
+          {showDate && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={displayDate}
+                onChange={handleDateChange}
+                disabled={isEmployee} // Disable if employee
+                placeholder="DD/MM/YYYY"
+                className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                required
+              />
+              <p className="mt-1 text-xs text-gray-500">Format: DD/MM/YYYY</p>
+            </div>
+          )}
+
+          {/* Shift Type */}
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Start Time <span className="text-red-500">*</span>
+              Shift Type <span className="text-red-500">*</span>
             </label>
-            <input
-              type="time"
-              value={formData.startTime}
-              onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+            <select
+              value={formData.shiftType}
+              onChange={(e) => setFormData({ ...formData, shiftType: e.target.value as ShiftType })}
               disabled={isEmployee} // Disable if employee
               className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               required
-            />
-          </div>
-        )}
-
-        {/* End Time */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            End Time <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="time"
-            value={formData.endTime}
-            onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-            disabled={isEmployee} // Disable if employee
-            className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-            required
-          />
-        </div>
-
-        {/* Employee */}
-        {showEmployee && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Employee</label>
-            <select
-              value={formData.employeeId || ''}
-              onChange={(e) => setFormData({ ...formData, employeeId: e.target.value || undefined })}
-              disabled={isEmployee} // Disable if employee
-              className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             >
-              <option value="">Select an employee</option>
-              {employees.map((employee) => (
-                <option key={employee.id} value={employee.id}>
-                  {employee.firstName} {employee.lastName}
+              {Object.values(ShiftType).map((type) => (
+                <option key={type} value={type}>
+                  {type.replace('_', ' ')}
                 </option>
               ))}
             </select>
           </div>
-        )}
 
-        {/* Employee Group */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Employee Group</label>
-          <select
-            value={formData.employeeGroupId || ''}
-            onChange={(e) => setFormData({ ...formData, employeeGroupId: e.target.value || undefined })}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF]"
-          >
-            <option value="">Select a group</option>
-            {employeeGroups.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.name}
-              </option>
-            ))}
-          </select>
-        </div>
+          {/* Start Time */}
+          {showStartTime && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Start Time <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="time"
+                value={formData.startTime}
+                onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                disabled={isEmployee} // Disable if employee
+                className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                required
+              />
+            </div>
+          )}
 
-        {/* Wage */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Wage (THB) <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            value={isNaN(formData.wage) ? '' : formData.wage}
-            onChange={(e) => {
-              const value = parseFloat(e.target.value)
-              setFormData({ ...formData, wage: isNaN(value) ? 0 : value })
-            }}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF]"
-            required
-          />
-        </div>
-
-        {/* Notes */}
-        <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-gray-700">Notes</label>
-          <textarea
-            value={formData.note || ''}
-            onChange={(e) => setFormData({ ...formData, note: e.target.value || undefined })}
-            rows={3}
-            disabled={isEmployee} // Disable if employee
-            className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-          />
-        </div>
-
-        {/* Approved */}
-        <div>
-          <label className="flex items-center space-x-2">
+          {/* End Time */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              End Time <span className="text-red-500">*</span>
+            </label>
             <input
-              type="checkbox"
-              checked={formData.approved}
-              onChange={(e) => setFormData({ ...formData, approved: e.target.checked })}
-              className="rounded border-gray-300 text-[#31BCFF] focus:ring-[#31BCFF]"
+              type="time"
+              value={formData.endTime}
+              onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+              disabled={isEmployee} // Disable if employee
+              className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+              required
             />
-            <span className="text-sm text-gray-700">Approved</span>
-          </label>
+          </div>
+
+          {/* Employee */}
+          {showEmployee && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Employee</label>
+              <select
+                value={formData.employeeId || ''}
+                onChange={(e) => setFormData({ ...formData, employeeId: e.target.value || undefined })}
+                disabled={isEmployee} // Disable if employee
+                className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+              >
+                <option value="">Select an employee</option>
+                {employees.map((employee) => (
+                  <option key={employee.id} value={employee.id}>
+                    {employee.firstName} {employee.lastName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Employee Group */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Employee Group</label>
+            <select
+              value={formData.employeeGroupId || ''}
+              onChange={(e) => setFormData({ ...formData, employeeGroupId: e.target.value || undefined })}
+              disabled={isEmployee} // Disable if employee
+              className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+            >
+              <option value="">Select a group</option>
+              {employeeGroups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Wage */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Wage (THB) <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={isNaN(formData.wage) ? '' : formData.wage}
+              onChange={(e) => {
+                const value = parseFloat(e.target.value)
+                setFormData({ ...formData, wage: isNaN(value) ? 0 : value })
+              }}
+              disabled={isEmployee} // Disable if employee
+              className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+              required
+            />
+          </div>
+
+          {/* Notes */}
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-gray-700">Notes</label>
+            <textarea
+              value={formData.note || ''}
+              onChange={(e) => setFormData({ ...formData, note: e.target.value || undefined })}
+              rows={3}
+              disabled={isEmployee} // Disable if employee
+              className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+            />
+          </div>
+
+          {/* Approved */}
+          <div>
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={formData.approved}
+                onChange={(e) => setFormData({ ...formData, approved: e.target.checked })}
+                disabled={isEmployee} // Disable if employee
+                className={`rounded border-gray-300 text-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'cursor-not-allowed' : ''}`}
+              />
+              <span className="text-sm text-gray-700">Approved</span>
+            </label>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Break Tab */}
+      {activeTab === 'break' && (
+        <div className="space-y-6">
+          {/* Break Toggle */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div>
+              <h3 className="text-sm font-medium text-gray-900">Enable Break Time</h3>
+              <p className="text-sm text-gray-500">Add break periods to this shift</p>
+            </div>
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={showBreakFields}
+                onChange={toggleBreakFields}
+                disabled={isEmployee}
+                className={`rounded border-gray-300 text-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'cursor-not-allowed' : ''}`}
+              />
+            </label>
+          </div>
+
+          {/* Break Fields */}
+          {showBreakFields && (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Break Start Time
+                </label>
+                <input
+                  type="time"
+                  value={formData.breakStart || ''}
+                  onChange={(e) => setFormData({ ...formData, breakStart: e.target.value || undefined })}
+                  disabled={isEmployee}
+                  className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                />
+                <p className="mt-1 text-xs text-gray-500">Time when break period starts</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Break End Time
+                </label>
+                <input
+                  type="time"
+                  value={formData.breakEnd || ''}
+                  onChange={(e) => setFormData({ ...formData, breakEnd: e.target.value || undefined })}
+                  disabled={isEmployee}
+                  className={`mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                />
+                <p className="mt-1 text-xs text-gray-500">Time when break period ends</p>
+              </div>
+
+              {/* Break Duration Display */}
+              {formData.breakStart && formData.breakEnd && (
+                <div className="sm:col-span-2">
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <p className="text-sm text-blue-700">
+                      <strong>Break Duration:</strong> {calculateBreakDuration(formData.breakStart, formData.breakEnd)}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Break Guidelines */}
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <h4 className="text-sm font-medium text-amber-800 mb-2">Break Time Guidelines</h4>
+            <ul className="text-sm text-amber-700 space-y-1">
+              <li>• Break times are automatically deducted from total worked hours</li>
+              <li>• Ensure break start time is after shift start time</li>
+              <li>• Ensure break end time is before shift end time</li>
+              <li>• Standard lunch break is typically 1 hour (12:00 - 13:00)</li>
+            </ul>
+          </div>
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="flex justify-end gap-3 pt-4">

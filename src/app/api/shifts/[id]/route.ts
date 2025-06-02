@@ -5,7 +5,7 @@ import { ShiftType, WageType } from '@prisma/client'
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const currentUser = await getCurrentUser()
@@ -16,7 +16,7 @@ export async function GET(
       )
     }
 
-    const { id } = context.params
+    const { id } = await context.params
     const shift = await prisma.shift.findFirst({
       where: { 
         id,
@@ -50,11 +50,18 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
     const rawData = await request.json()
+
+    const convertTimeToDateTime = (timeStr: string, baseDate: string): Date => {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      const date = new Date(baseDate);
+      date.setHours(hours, minutes, 0, 0);
+      return date;
+    };
 
     const data = {
       date: rawData.date ? new Date(rawData.date) : undefined,
@@ -63,8 +70,8 @@ export async function PUT(
       employeeId: rawData.employeeId || null,
       employeeGroupId: rawData.employeeGroupId || null,
       shiftType: rawData.shiftType as ShiftType,
-      breakStart: rawData.breakStart || null,
-      breakEnd: rawData.breakEnd || null,
+      breakStart: rawData.breakStart ? convertTimeToDateTime(rawData.breakStart, rawData.date) : null,
+      breakEnd: rawData.breakEnd ? convertTimeToDateTime(rawData.breakEnd, rawData.date) : null,
       wage: rawData.wage !== undefined ? parseFloat(rawData.wage) : undefined,
       wageType: rawData.wageType as WageType,
       note: rawData.note !== undefined ? rawData.note : null,
@@ -92,10 +99,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
     await prisma.shift.delete({
       where: { id }
     })

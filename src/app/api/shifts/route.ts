@@ -138,13 +138,13 @@ export async function POST(req: Request) {
       )
     }
 
-    const data = await req.json();
-    console.log('Received shift data:', JSON.stringify(data, null, 2));
+    const rawData = await req.json();
+    console.log('Received shift data:', JSON.stringify(rawData, null, 2));
 
-    if (currentUser && data.employeeId) {
+    if (currentUser && rawData.employeeId) {
       const employee = await prisma.employee.findFirst({
         where: {
-          id: data.employeeId,
+          id: rawData.employeeId,
           user: {
             businessId: currentUser.businessId
           }
@@ -158,6 +158,19 @@ export async function POST(req: Request) {
         )
       }
     }
+
+    const convertTimeToDateTime = (timeStr: string, baseDate: string): Date => {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      const date = new Date(baseDate);
+      date.setHours(hours, minutes, 0, 0);
+      return date;
+    };
+
+    const data = {
+      ...rawData,
+      breakStart: rawData.breakStart ? convertTimeToDateTime(rawData.breakStart, rawData.date) : null,
+      breakEnd: rawData.breakEnd ? convertTimeToDateTime(rawData.breakEnd, rawData.date) : null,
+    };
 
     if (!data.endTime) {
       console.log('Creating active shift without endTime');
@@ -182,12 +195,16 @@ export async function POST(req: Request) {
         ...data,
         date: new Date(data.date), // Convert to Date object
         endTime: '23:59', // First part ends at midnight
+        breakStart: data.breakStart ? convertTimeToDateTime(rawData.breakStart, rawData.date) : null,
+        breakEnd: data.breakEnd ? convertTimeToDateTime(rawData.breakEnd, rawData.date) : null,
       };
 
       const secondPart = {
         ...data,
         date: nextDay, // Use Date object for the next day
         startTime: '01:00', // Start at midnight
+        breakStart: data.breakStart ? convertTimeToDateTime(rawData.breakStart, nextDay.toISOString().split('T')[0]) : null,
+        breakEnd: data.breakEnd ? convertTimeToDateTime(rawData.breakEnd, nextDay.toISOString().split('T')[0]) : null,
       };
 
       const [firstShift, secondShift] = await Promise.all([

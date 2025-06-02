@@ -38,6 +38,8 @@ interface Shift {
   date: string
   startTime: string
   endTime: string | null
+  breakStart?: string | null
+  breakEnd?: string | null
   employee: {
     firstName: string
     lastName: string
@@ -89,6 +91,7 @@ export default function EmployeeDashboard() {
   const [error, setError] = useState<string | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isOnBreak, setIsOnBreak] = useState(false)
+  const [breakLoading, setBreakLoading] = useState(false)
   const [showShiftModal, setShowShiftModal] = useState(false)
   const [employees, setEmployees] = useState([])
   const [employeeGroups, setEmployeeGroups] = useState([])
@@ -194,6 +197,13 @@ export default function EmployeeDashboard() {
       if (activeShiftRes.ok) {
         const activeShiftData = await activeShiftRes.json()
         setActiveShift(activeShiftData)
+        
+        // Check if currently on break
+        if (activeShiftData && activeShiftData.breakStart && !activeShiftData.breakEnd) {
+          setIsOnBreak(true)
+        } else {
+          setIsOnBreak(false)
+        }
       }
 
       // Fetch today's scheduled shift and upcoming shifts
@@ -291,11 +301,9 @@ export default function EmployeeDashboard() {
       setActiveShift(newShift)
       setShowShiftModal(false)
       
-      // Refresh today's shift and upcoming shifts data
       await fetchTodayShift()
       await fetchUpcomingShifts()
       
-      // Refresh today's shift and upcoming shifts data
       await fetchTodayShift()
       await fetchUpcomingShifts()
     } catch (error: any) {
@@ -344,6 +352,60 @@ export default function EmployeeDashboard() {
   const handleLogout = () => {
     document.cookie = 'employee_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
     router.push('/employee/login')
+  }
+
+  const handleStartBreak = async () => {
+    if (!activeShift) return
+
+    setBreakLoading(true)
+    setError(null)
+
+    try {
+      const res = await fetch(`/api/shifts/${activeShift.id}/break`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || 'Failed to start break')
+      }
+
+      const updatedShift = await res.json()
+      setActiveShift(updatedShift)
+      setIsOnBreak(true)
+    } catch (error: any) {
+      setError(error.message)
+    } finally {
+      setBreakLoading(false)
+    }
+  }
+
+  const handleEndBreak = async () => {
+    if (!activeShift) return
+
+    setBreakLoading(true)
+    setError(null)
+
+    try {
+      const res = await fetch(`/api/shifts/${activeShift.id}/break`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || 'Failed to end break')
+      }
+
+      const updatedShift = await res.json()
+      setActiveShift(updatedShift)
+      setIsOnBreak(false)
+    } catch (error: any) {
+      setError(error.message)
+    } finally {
+      setBreakLoading(false)
+    }
   }
 
   if (loading) {
@@ -450,13 +512,14 @@ export default function EmployeeDashboard() {
                   ) : (
                     <>
                       <Button
-                        onClick={() => setIsOnBreak(!isOnBreak)}
+                        onClick={isOnBreak ? handleEndBreak : handleStartBreak}
+                        disabled={breakLoading}
                         className={`w-full py-3 ${
                           isOnBreak ? "bg-orange-500 hover:bg-orange-600" : "bg-sky-500 hover:bg-sky-600"
                         } text-white`}
                       >
                         <Coffee className="w-5 h-5 mr-2" />
-                        {isOnBreak ? "End Break" : "Start Break"}
+                        {breakLoading ? 'Processing...' : (isOnBreak ? "End Break" : "Start Break")}
                       </Button>
                       <Button 
                         onClick={handleClockOut} 
