@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/app/lib/prisma'
+import { getCurrentUser } from '@/app/lib/auth'
 import { ShiftType, WageType } from '@prisma/client'
 
 export async function GET(
@@ -7,9 +8,24 @@ export async function GET(
   context: { params: { id: string } }
 ) {
   try {
+    const currentUser = await getCurrentUser()
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const { id } = context.params
-    const shift = await prisma.shift.findUnique({
-      where: { id },
+    const shift = await prisma.shift.findFirst({
+      where: { 
+        id,
+        employee: {
+          user: {
+            businessId: currentUser.businessId
+          }
+        }
+      },
       include: {
         employee: true,
         employeeGroup: true

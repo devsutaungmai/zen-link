@@ -62,6 +62,14 @@ export async function GET(request: Request) {
     if (employeeId) {
       whereCondition.employeeId = employeeId
     }
+
+    if (currentUser) {
+      whereCondition.employee = {
+        user: {
+          businessId: currentUser.businessId
+        }
+      }
+    }
     
     const shifts = await prisma.shift.findMany({
       where: whereCondition,
@@ -95,8 +103,61 @@ export async function GET(request: Request) {
 
 export async function POST(req: Request) {
   try {
+    const currentUser = await getCurrentUser()
+    const cookieStore = await cookies()
+    const employeeToken = cookieStore.get('employee_token')?.value
+
+    let isAuthorized = false
+    let currentEmployeeId = null
+
+    if (currentUser) {
+      isAuthorized = true
+    }
+
+    if (!isAuthorized && employeeToken) {
+      try {
+        const decoded = jwt.verify(employeeToken, process.env.JWT_SECRET!) as {
+          id: string
+          employeeId: string
+          type: string
+        }
+
+        if (decoded.type === 'employee') {
+          isAuthorized = true
+          currentEmployeeId = decoded.employeeId
+        }
+      } catch (error) {
+        console.error('Error verifying employee token:', error)
+      }
+    }
+
+    if (!isAuthorized) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const data = await req.json();
     console.log('Received shift data:', JSON.stringify(data, null, 2));
+
+    if (currentUser && data.employeeId) {
+      const employee = await prisma.employee.findFirst({
+        where: {
+          id: data.employeeId,
+          user: {
+            businessId: currentUser.businessId
+          }
+        }
+      })
+
+      if (!employee) {
+        return NextResponse.json(
+          { error: 'Employee not found or access denied' },
+          { status: 403 }
+        )
+      }
+    }
 
     if (!data.endTime) {
       console.log('Creating active shift without endTime');
