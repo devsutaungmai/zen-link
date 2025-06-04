@@ -36,14 +36,14 @@ export async function POST(req: Request) {
       )
     }
 
-    if (!employee.pin) {
+    if (!employee.user.pin) {
       return NextResponse.json(
         { error: 'PIN not set. Please contact your administrator.' },
         { status: 401 }
       )
     }
 
-    if (employee.pin !== pin) {
+    if (employee.user.pin !== pin) {
       return NextResponse.json(
         { error: 'Invalid employee ID or PIN' },
         { status: 401 }

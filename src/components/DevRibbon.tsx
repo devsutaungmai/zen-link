@@ -4,16 +4,18 @@ import { useEffect, useState } from 'react'
 
 export default function DevRibbon() {
   const [isDevelopment, setIsDevelopment] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     const isDevEnv = process.env.NODE_ENV === 'development' || 
                      process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview' ||
-                     window.location.hostname.includes('dev.')
+                     (typeof window !== 'undefined' && window.location.hostname.includes('dev.'))
     
     setIsDevelopment(isDevEnv)
   }, [])
 
-  if (!isDevelopment) {
+  if (!mounted || !isDevelopment) {
     return null
   }
 
