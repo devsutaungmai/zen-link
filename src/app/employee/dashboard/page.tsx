@@ -721,21 +721,37 @@ export default function EmployeeDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-3">
-                  <Button variant="outline" className="border-sky-300 text-sky-700 hover:bg-sky-50 py-3">
+                  <Button 
+                    variant="outline" 
+                    className="border-sky-300 text-sky-700 hover:bg-sky-50 py-3"
+                    onClick={() => router.push('/dashboard/teams')}
+                  >
                     <Users className="w-4 h-4 mr-2" />
                     Team
                   </Button>
-                  <Button variant="outline" className="border-sky-300 text-sky-700 hover:bg-sky-50 py-3">
+                  <Button 
+                    variant="outline" 
+                    className="border-sky-300 text-sky-700 hover:bg-sky-50 py-3"
+                    onClick={() => router.push('/dashboard/schedule')}
+                  >
                     <Calendar className="w-4 h-4 mr-2" />
                     Schedule
                   </Button>
-                  <Button variant="outline" className="border-sky-300 text-sky-700 hover:bg-sky-50 py-3">
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Tasks
+                  <Button 
+                    variant="outline" 
+                    className="border-sky-300 text-sky-700 hover:bg-sky-50 py-3"
+                    onClick={() => router.push('/employee/availability')}
+                  >
+                    <Clock className="w-4 h-4 mr-2" />
+                    Availability
                   </Button>
-                  <Button variant="outline" className="border-sky-300 text-sky-700 hover:bg-sky-50 py-3">
+                  <Button 
+                    variant="outline" 
+                    className="border-sky-300 text-sky-700 hover:bg-sky-50 py-3"
+                    onClick={() => router.push('/employee/sick-leaves')}
+                  >
                     <Bell className="w-4 h-4 mr-2" />
-                    Alerts
+                    Sick Leave
                   </Button>
                 </div>
               </CardContent>
@@ -749,7 +765,7 @@ export default function EmployeeDashboard() {
         isOpen={showShiftModal}
         onClose={() => setShowShiftModal(false)}
         initialData={{
-          note: '', // Only note field is needed
+          note: '',
         }}
         employees={employees}
         employeeGroups={employeeGroups}

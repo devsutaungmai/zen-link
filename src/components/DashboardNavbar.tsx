@@ -9,6 +9,7 @@ import {
   HomeIcon,
   UsersIcon,
   UserGroupIcon,
+  UserIcon,
   Cog6ToothIcon,
   Bars3Icon,
   XMarkIcon,
@@ -17,8 +18,19 @@ import {
 import { useRouter } from 'next/navigation'
 import { useUser } from '@/app/lib/useUser'
 
-// Define navigation items
-const adminNavigation = [
+type NavigationChild = {
+  name: string
+  href: string
+}
+
+type NavigationItem = {
+  name: string
+  href?: string
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
+  children?: NavigationChild[]
+}
+
+const adminNavigation: NavigationItem[] = [
   { name: 'Home', href: '/dashboard', icon: HomeIcon },
   { name: 'Users', href: '/dashboard/users', icon: UsersIcon },
   {
@@ -38,15 +50,17 @@ const adminNavigation = [
     children: [
       { name: 'Shift', href: '/dashboard/shifts' },
       { name: 'Schedule', href: '/dashboard/schedule' },
+      { name: 'Sick Leaves', href: '/dashboard/sick-leaves' },
     ],
   },
   { name: 'Settings', href: '/dashboard/settings', icon: Cog6ToothIcon },
 ]
 
-// Employee navigation - only shows schedule
-const employeeNavigation = [
+const employeeNavigation: NavigationItem[] = [
   { name: 'Home', href: '/dashboard', icon: HomeIcon },
   { name: 'Schedule', href: '/dashboard/schedule', icon: ClockIcon },
+  { name: 'Availability', href: '/employee/availability', icon: ClockIcon },
+  { name: 'Sick Leave', href: '/employee/sick-leaves', icon: UserIcon },
 ]
 
 interface DashboardNavbarProps {
@@ -58,7 +72,6 @@ export default function DashboardNavbar({ setMobileMenuOpen }: DashboardNavbarPr
   const { user, loading } = useUser()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   console.log('User:', user);
-  // Determine which navigation to show based on user role
   const navigation = user?.role === 'EMPLOYEE' ? employeeNavigation : adminNavigation
 
   const handleLogout = async () => {
