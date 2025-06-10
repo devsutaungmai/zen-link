@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/app/lib/prisma'
-import { getCurrentUser } from '@/app/lib/auth'
+import { getCurrentUser } from '@/lib/auth'
 import { ShiftType, WageType } from '@prisma/client'
 
 export async function GET(

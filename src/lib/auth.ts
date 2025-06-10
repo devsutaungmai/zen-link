@@ -1,8 +1,10 @@
 'use server'
 
-import { prisma } from './prisma'
+import { PrismaClient } from '@prisma/client'
 import { verify } from 'jsonwebtoken'
 import { cookies } from 'next/headers'
+
+const prisma = new PrismaClient()
 
 export async function getCurrentUser() {
   const store = await cookies() 

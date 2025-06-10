@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/app/lib/prisma'
-import { getCurrentUser } from '@/app/lib/auth'
+import { getCurrentUser } from '@/lib/auth'
 import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
 
