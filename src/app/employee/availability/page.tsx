@@ -25,12 +25,12 @@ export default function EmployeeAvailabilityPage() {
   const currentYear = currentDate.getFullYear()
 
   const fetchAvailabilities = async () => {
-    if (!user?.id) return
+    if (!user?.employee?.id) return
 
     try {
       setLoading(true)
       const response = await fetch(
-        `/api/availability?employeeId=${user.id}&month=${currentMonth + 1}&year=${currentYear}`
+        `/api/availability?employeeId=${user.employee.id}&month=${currentMonth + 1}&year=${currentYear}`
       )
       
       if (!response.ok) {

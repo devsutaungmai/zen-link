@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/app/lib/prisma'
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, getCurrentUserOrEmployee } from '@/lib/auth'
 
 export async function GET(
   request: NextRequest,
@@ -8,7 +8,10 @@ export async function GET(
 ) {
   try {
     const params = await context.params
-    const user = await requireAuth()
+    const auth = await getCurrentUserOrEmployee()
+    if (!auth) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     const sickLeave = await prisma.sickLeave.findUnique({
       where: { id: params.id },
@@ -33,16 +36,25 @@ export async function GET(
       return NextResponse.json({ error: 'Sick leave not found' }, { status: 404 })
     }
 
-    if (user.role === 'EMPLOYEE') {
-      const employee = await prisma.employee.findFirst({
-        where: { userId: user.id }
-      })
-      if (!employee || sickLeave.employeeId !== employee.id) {
+    if (auth.type === 'employee') {
+      // Employee can only view their own sick leaves
+      if (sickLeave.employeeId !== auth.data.id) {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 })
       }
-    } else if (user.role === 'ADMIN' || user.role === 'MANAGER') {
-      if (sickLeave.employee.user.businessId !== user.businessId) {
-        return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+    } else {
+      // Admin/Manager user
+      const user = auth.data as any
+      if (user.role === 'EMPLOYEE') {
+        const employee = await prisma.employee.findFirst({
+          where: { userId: user.id }
+        })
+        if (!employee || sickLeave.employeeId !== employee.id) {
+          return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+        }
+      } else if (user.role === 'ADMIN' || user.role === 'MANAGER') {
+        if (sickLeave.employee.user.businessId !== user.businessId) {
+          return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+        }
       }
     }
 

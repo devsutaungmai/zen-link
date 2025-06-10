@@ -6,6 +6,14 @@ interface User {
   lastName: string
   email: string
   role: string
+  employee?: {
+    id: string
+    employeeNo: string
+    department: string
+    departmentId: string
+    employeeGroup?: string
+    employeeGroupId?: string
+  }
 }
 
 export function useUser() {

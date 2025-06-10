@@ -1,14 +1,29 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/app/lib/prisma'
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, getCurrentUserOrEmployee } from '@/lib/auth'
 
 export async function GET() {
   try {
-    const user = await requireAuth()
+    const auth = await getCurrentUserOrEmployee()
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    // Get businessId from either user or employee
+    let businessId: string
+    if (auth.type === 'user') {
+      businessId = auth.data.businessId
+    } else {
+      // For employees, get businessId from their user record
+      businessId = auth.data.user.businessId
+    }
     
     const departments = await prisma.department.findMany({
       where: {
-        businessId: user.businessId
+        businessId: businessId
       },
       include: {
         _count: {

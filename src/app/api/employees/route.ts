@@ -1,21 +1,28 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/app/lib/prisma'
-import { getCurrentUser } from '@/lib/auth'
+import { getCurrentUserOrEmployee, getCurrentUser } from '@/lib/auth'
 
 export async function GET() {
   try {
-    const currentUser = await getCurrentUser()
-    if (!currentUser) {
+    const auth = await getCurrentUserOrEmployee()
+    if (!auth) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
+    let businessId: string
+    if (auth.type === 'user') {
+      businessId = auth.data.businessId
+    } else {
+      businessId = auth.data.user.businessId
+    }
+
     const employees = await prisma.employee.findMany({
       where: {
         user: {
-          businessId: currentUser.businessId
+          businessId: businessId
         }
       },
       include: {
