@@ -13,7 +13,13 @@ export async function POST(req: Request) {
       )
     }
 
-    // Find employee by employeeNo (employee ID)
+    if (!/^\d{6}$/.test(pin)) {
+      return NextResponse.json(
+        { error: 'PIN must be exactly 6 digits' },
+        { status: 400 }
+      )
+    }
+
     const employee = await prisma.employee.findUnique({
       where: { employeeNo: employeeId },
       include: {
@@ -30,23 +36,20 @@ export async function POST(req: Request) {
       )
     }
 
-    // Check if employee has a PIN set
-    if (!employee.pin) {
+    if (!employee.user.pin) {
       return NextResponse.json(
         { error: 'PIN not set. Please contact your administrator.' },
         { status: 401 }
       )
     }
 
-    // Verify PIN (simple string comparison for now, you might want to hash PINs in production)
-    if (employee.pin !== pin) {
+    if (employee.user.pin !== pin) {
       return NextResponse.json(
         { error: 'Invalid employee ID or PIN' },
         { status: 401 }
       )
     }
 
-    // Create JWT token with employee information
     const token = jwt.sign(
       {
         id: employee.id,
@@ -56,7 +59,7 @@ export async function POST(req: Request) {
         type: 'employee'
       },
       process.env.JWT_SECRET!,
-      { expiresIn: '12h' } // Shorter expiry for employee sessions
+      { expiresIn: '12h' }
     )
 
     const res = NextResponse.json({
@@ -71,7 +74,6 @@ export async function POST(req: Request) {
       },
     })
 
-    // Set the token as an HTTP-only cookie
     res.cookies.set('employee_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

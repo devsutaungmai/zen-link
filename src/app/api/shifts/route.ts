@@ -1,12 +1,54 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/app/lib/prisma'
+import { getCurrentUser } from '@/app/lib/auth'
+import jwt from 'jsonwebtoken'
+import { cookies } from 'next/headers'
 
 export async function GET(request: Request) {
   try {
+    const currentUser = await getCurrentUser()
+    const cookieStore = await cookies()
+    const employeeToken = cookieStore.get('employee_token')?.value
+
+    let isAuthorized = false
+    let currentEmployeeId = null
+
+    if (currentUser) {
+      isAuthorized = true
+    }
+
+    if (!isAuthorized && employeeToken) {
+      try {
+        const decoded = jwt.verify(employeeToken, process.env.JWT_SECRET!) as {
+          id: string
+          employeeId: string
+          type: string
+        }
+
+        if (decoded.type === 'employee') {
+          isAuthorized = true
+          currentEmployeeId = decoded.employeeId
+        }
+      } catch (error) {
+        console.error('Error verifying employee token:', error)
+      }
+    }
+
+    if (!isAuthorized) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
-    const employeeId = searchParams.get('employeeId')
+    let employeeId = searchParams.get('employeeId')
+
+    if (currentEmployeeId && !currentUser) {
+      employeeId = currentEmployeeId
+    }
 
     let whereCondition: any = {}
     
@@ -19,6 +61,14 @@ export async function GET(request: Request) {
     
     if (employeeId) {
       whereCondition.employeeId = employeeId
+    }
+
+    if (currentUser) {
+      whereCondition.employee = {
+        user: {
+          businessId: currentUser.businessId
+        }
+      }
     }
     
     const shifts = await prisma.shift.findMany({
@@ -53,17 +103,82 @@ export async function GET(request: Request) {
 
 export async function POST(req: Request) {
   try {
-    const data = await req.json();
-    console.log('Received shift data:', JSON.stringify(data, null, 2));
+    const currentUser = await getCurrentUser()
+    const cookieStore = await cookies()
+    const employeeToken = cookieStore.get('employee_token')?.value
 
-    // If endTime is not provided (punch clock scenario), create a simple shift
+    let isAuthorized = false
+    let currentEmployeeId = null
+
+    if (currentUser) {
+      isAuthorized = true
+    }
+
+    if (!isAuthorized && employeeToken) {
+      try {
+        const decoded = jwt.verify(employeeToken, process.env.JWT_SECRET!) as {
+          id: string
+          employeeId: string
+          type: string
+        }
+
+        if (decoded.type === 'employee') {
+          isAuthorized = true
+          currentEmployeeId = decoded.employeeId
+        }
+      } catch (error) {
+        console.error('Error verifying employee token:', error)
+      }
+    }
+
+    if (!isAuthorized) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const rawData = await req.json();
+    console.log('Received shift data:', JSON.stringify(rawData, null, 2));
+
+    if (currentUser && rawData.employeeId) {
+      const employee = await prisma.employee.findFirst({
+        where: {
+          id: rawData.employeeId,
+          user: {
+            businessId: currentUser.businessId
+          }
+        }
+      })
+
+      if (!employee) {
+        return NextResponse.json(
+          { error: 'Employee not found or access denied' },
+          { status: 403 }
+        )
+      }
+    }
+
+    const convertTimeToDateTime = (timeStr: string, baseDate: string): Date => {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      const date = new Date(baseDate);
+      date.setHours(hours, minutes, 0, 0);
+      return date;
+    };
+
+    const data = {
+      ...rawData,
+      breakStart: rawData.breakStart ? convertTimeToDateTime(rawData.breakStart, rawData.date) : null,
+      breakEnd: rawData.breakEnd ? convertTimeToDateTime(rawData.breakEnd, rawData.date) : null,
+    };
+
     if (!data.endTime) {
       console.log('Creating active shift without endTime');
       const shift = await prisma.shift.create({
         data: {
           ...data,
-          date: new Date(data.date), // Convert to Date object
-          endTime: null, // No end time for active shifts
+          date: new Date(data.date),
+          endTime: null,
         },
       });
       return NextResponse.json(shift);
@@ -73,7 +188,6 @@ export async function POST(req: Request) {
     const endHour = parseInt(data.endTime.split(':')[0], 10);
 
     if (endHour < startHour) {
-      // Shift spans across two days
       const nextDay = new Date(data.date);
       nextDay.setDate(nextDay.getDate() + 1);
 
@@ -81,12 +195,16 @@ export async function POST(req: Request) {
         ...data,
         date: new Date(data.date), // Convert to Date object
         endTime: '23:59', // First part ends at midnight
+        breakStart: data.breakStart ? convertTimeToDateTime(rawData.breakStart, rawData.date) : null,
+        breakEnd: data.breakEnd ? convertTimeToDateTime(rawData.breakEnd, rawData.date) : null,
       };
 
       const secondPart = {
         ...data,
         date: nextDay, // Use Date object for the next day
         startTime: '01:00', // Start at midnight
+        breakStart: data.breakStart ? convertTimeToDateTime(rawData.breakStart, nextDay.toISOString().split('T')[0]) : null,
+        breakEnd: data.breakEnd ? convertTimeToDateTime(rawData.breakEnd, nextDay.toISOString().split('T')[0]) : null,
       };
 
       const [firstShift, secondShift] = await Promise.all([

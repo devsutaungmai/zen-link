@@ -4,6 +4,15 @@ import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { PlusIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import Swal from 'sweetalert2'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 interface Employee {
   id: string
@@ -23,15 +32,18 @@ interface Employee {
 }
 
 export default function EmployeesPage() {
-  const [employees, setEmployees] = useState<Employee[]>([]) // Initialize as empty array
+  const [employees, setEmployees] = useState<Employee[]>([]) 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteEmployeeId, setInviteEmployeeId] = useState('');
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinEmployeeId, setPinEmployeeId] = useState('');
+  const [pinEmployeeName, setPinEmployeeName] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
 
   const fetchEmployees = async () => {
     try {
@@ -47,7 +59,6 @@ export default function EmployeesPage() {
       
       const data = await response.json()
       
-      // Ensure data is an array
       if (Array.isArray(data)) {
         setEmployees(data)
       } else {
@@ -56,7 +67,7 @@ export default function EmployeesPage() {
       }
     } catch (error) {
       console.error('Error fetching employees:', error)
-      setError(error.message)
+      setError(error instanceof Error ? error.message : 'An unknown error occurred')
       setEmployees([])
     } finally {
       setLoading(false)
@@ -100,11 +111,15 @@ export default function EmployeesPage() {
       }
     } catch (error) {
       console.error('Error deleting employee:', error)
-      await Swal.fire({
+      Swal.fire({
         title: 'Error!',
         text: 'Failed to delete employee.',
         icon: 'error',
-        confirmButtonColor: '#31BCFF',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true
       })
     }
   }
@@ -113,6 +128,68 @@ export default function EmployeesPage() {
     setInviteEmail(email);
     setInviteEmployeeId(employeeId);
     setShowInviteModal(true);
+  };
+
+  const handleSetPin = (employeeId: string, employeeName: string) => {
+    setPinEmployeeId(employeeId);
+    setPinEmployeeName(employeeName);
+    setNewPin('');
+    setShowPinModal(true);
+  };
+
+  const handlePinSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!/^\d{6}$/.test(newPin)) {
+      Swal.fire({
+        title: 'Invalid PIN',
+        text: 'PIN must be exactly 6 digits',
+        icon: 'error',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true
+      });
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/employees/${pinEmployeeId}/pin`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: newPin }),
+      });
+
+      if (res.ok) {
+        Swal.fire({
+          title: 'Success',
+          text: 'PIN has been set successfully!',
+          icon: 'success',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true
+        });
+        setShowPinModal(false);
+      } else {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to set PIN');
+      }
+    } catch (error) {
+      console.error('Error setting PIN:', error);
+      Swal.fire({
+        title: 'Error',
+        text: 'Failed to set PIN. Please try again.',
+        icon: 'error',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true
+      });
+    }
   };
 
   const formatDate = (date: Date) => {
@@ -221,10 +298,11 @@ export default function EmployeesPage() {
                         {employee.mobile}
                       </td>
                       <td className="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                        <div className="flex items-center justify-end space-x-4">
+                        <div className="flex items-center justify-end space-x-2">
                           <button
                             onClick={() => handleInvite(employee.email || '', employee.id)}
-                            className="flex items-center text-[#31BCFF] hover:text-[#31BCFF]/90"
+                            className="flex items-center text-[#31BCFF] hover:text-[#31BCFF]/90 px-2 py-1"
+                            title="Send Invite"
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -232,7 +310,7 @@ export default function EmployeesPage() {
                               viewBox="0 0 24 24"
                               strokeWidth={1.5}
                               stroke="currentColor"
-                              className="w-5 h-5 mr-1"
+                              className="w-4 h-4"
                             >
                               <path
                                 strokeLinecap="round"
@@ -240,19 +318,40 @@ export default function EmployeesPage() {
                                 d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25H4.5a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
                               />
                             </svg>
-                            Invite
+                          </button>
+                          <button
+                            onClick={() => handleSetPin(employee.id, `${employee.firstName} ${employee.lastName}`)}
+                            className="flex items-center text-green-600 hover:text-green-700 px-2 py-1"
+                            title="Set PIN"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth={1.5}
+                              stroke="currentColor"
+                              className="w-4 h-4"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z"
+                              />
+                            </svg>
                           </button>
                           <Link
                             href={`/dashboard/employees/${employee.id}/edit`}
-                            className="text-[#31BCFF] hover:text-[#31BCFF]/90"
+                            className="text-[#31BCFF] hover:text-[#31BCFF]/90 p-1"
+                            title="Edit Employee"
                           >
-                            <PencilIcon className="h-5 w-5" />
+                            <PencilIcon className="h-4 w-4" />
                           </Link>
                           <button
                             onClick={() => handleDelete(employee.id)}
-                            className="text-red-600 hover:text-red-900"
+                            className="text-red-600 hover:text-red-900 p-1"
+                            title="Delete Employee"
                           >
-                            <TrashIcon className="h-5 w-5" />
+                            <TrashIcon className="h-4 w-4" />
                           </button>
                         </div>
                       </td>
@@ -265,72 +364,143 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      {showInviteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Send Invite</h2>
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                try {
-                  const res = await fetch('/api/employees/invite', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                      email: inviteEmail,
-                      employeeId: inviteEmployeeId,
-                    }),
+      {/* Email Invite Modal */}
+      <Dialog open={showInviteModal} onOpenChange={(open) => !open && setShowInviteModal(false)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Send Invite</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setInviteLoading(true);
+              try {
+                const res = await fetch('/api/employees/invite', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ 
+                    email: inviteEmail,
+                    employeeId: inviteEmployeeId,
+                  }),
+                });
+                if (res.ok) {
+                  // Update the employee's email in the local state
+                  setEmployees(employees.map(emp => 
+                    emp.id === inviteEmployeeId 
+                      ? { ...emp, email: inviteEmail } 
+                      : emp
+                  ));
+                  
+                  Swal.fire({
+                    title: 'Success',
+                    text: 'Invite sent successfully!',
+                    icon: 'success',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true
                   });
-                  if (res.ok) {
-                    // Update the employee's email in the local state
-                    setEmployees(employees.map(emp => 
-                      emp.id === inviteEmployeeId 
-                        ? { ...emp, email: inviteEmail } 
-                        : emp
-                    ));
-                    
-                    Swal.fire('Success', 'Invite sent successfully!', 'success');
-                  } else {
-                    const data = await res.json();
-                    throw new Error(data.error || 'Failed to send invite');
-                  }
-                } catch (error) {
-                  console.error('Error sending invite:', error);
-                  Swal.fire('Error', 'Failed to send invite.', 'error');
-                } finally {
-                  setShowInviteModal(false);
+                } else {
+                  const data = await res.json();
+                  throw new Error(data.error || 'Failed to send invite');
                 }
-              }}
-            >
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">Email</label>
-                <input
-                  type="email"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#31BCFF] focus:ring-[#31BCFF]"
-                  required
-                />
-              </div>
-              <div className="flex justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setShowInviteModal(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-[#31BCFF] text-white rounded-md hover:bg-[#31BCFF]/90"
-                >
-                  Send
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+              } catch (error) {
+                console.error('Error sending invite:', error);
+                Swal.fire({
+                  title: 'Error',
+                  text: 'Failed to send invite.',
+                  icon: 'error',
+                  toast: true,
+                  position: 'top-end',
+                  showConfirmButton: false,
+                  timer: 3000,
+                  timerProgressBar: true
+                });
+              } finally {
+                setInviteLoading(false);
+                setShowInviteModal(false);
+              }
+            }}
+            className="space-y-4"
+          >
+            <div>
+              <Label htmlFor="invite-email">Email</Label>
+              <Input
+                id="invite-email"
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowInviteModal(false)}
+                disabled={inviteLoading}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                disabled={inviteLoading}
+                className="bg-[#31BCFF] hover:bg-[#31BCFF]/90 text-white"
+              >
+                {inviteLoading ? 'Sending...' : 'Send'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* PIN Modal */}
+      <Dialog open={showPinModal} onOpenChange={(open) => !open && setShowPinModal(false)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set PIN for {pinEmployeeName}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handlePinSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="pin-input">6-Digit PIN</Label>
+              <Input
+                id="pin-input"
+                type="text"
+                value={newPin}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, ''); // Only allow digits
+                  if (value.length <= 6) {
+                    setNewPin(value);
+                  }
+                }}
+                placeholder="123456"
+                maxLength={6}
+                className="text-center text-lg font-mono tracking-wider"
+                required
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Enter a 6-digit PIN that the employee will use to punch in/out
+              </p>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowPinModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={newPin.length !== 6}
+              >
+                Set PIN
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

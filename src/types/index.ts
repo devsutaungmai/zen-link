@@ -14,6 +14,7 @@ export interface Employee {
   position?: string
   phone?: string
   status?: 'ACTIVE' | 'INACTIVE'
+  employeeNo?: string
 }
 
 export interface Shift {
@@ -38,4 +39,28 @@ export interface EmployeeGroup {
   id: string
   name: string
   employees?: Employee[]
+}
+
+export interface ShiftExchange {
+  id: string
+  shiftId: string
+  fromEmployeeId: string
+  toEmployeeId: string
+  status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  reason?: string
+  requestedAt: string
+  approvedAt?: string
+  approvedBy?: string
+  fromEmployee: {
+    id: string
+    firstName: string
+    lastName: string
+    employeeNo?: string
+  }
+  toEmployee: {
+    id: string
+    firstName: string
+    lastName: string
+    employeeNo?: string
+  }
 }

@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog"
 
 import ShiftForm from "../ShiftForm"
+import { Employee, EmployeeGroup } from '@prisma/client'
 
 interface ShiftFormModalProps {
   isOpen: boolean
@@ -40,13 +41,18 @@ export default function ShiftFormModal({
         </DialogHeader>
         <ShiftForm
           initialData={initialData}
-          employees={employees}
+          employees={employees.map(({ id, firstName, lastName, employeeNo }) => ({
+            id,
+            firstName,
+            lastName,
+            employeeNo: employeeNo === null ? undefined : employeeNo,
+          }))}
           employeeGroups={employeeGroups}
           onSubmit={onSubmit}
           onCancel={onClose}
           loading={loading}
-          showEmployee={true} // Always show employee selector
-          showStartTime={viewType === 'week'} // Only hide startTime for day view if needed
+          showEmployee={true}
+          showStartTime={viewType === 'week'}
           showDate={true}
         />
       </DialogContent>

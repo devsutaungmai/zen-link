@@ -32,6 +32,8 @@ export default function ScheduleHeader({
   selectedEmployeeId,
   onEmployeeChange
 }: ScheduleHeaderProps) {
+  const safeEmployees = Array.isArray(employees) ? employees : []
+  
   return (
     <div className="mb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
       <div className="flex items-center">
@@ -67,7 +69,7 @@ export default function ScheduleHeader({
             className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#31BCFF]"
           >
             <option value="">All Employees</option>
-            {employees.map(employee => (
+            {safeEmployees.map(employee => (
               <option key={employee.id} value={employee.id}>
                 {employee.firstName} {employee.lastName}
               </option>

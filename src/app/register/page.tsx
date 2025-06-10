@@ -80,7 +80,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ backgroundColor: '#E5F1FF' }}>
       <Link href="/">
         <h1 className="text-3xl font-bold text-[#31BCFF] mb-8">ZenLink</h1>
       </Link>

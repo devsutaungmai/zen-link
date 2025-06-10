@@ -1,26 +1,54 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/app/lib/prisma'
 import { getCurrentUser } from '@/app/lib/auth'
+import jwt from 'jsonwebtoken'
+import { cookies } from 'next/headers'
 
 export async function GET() {
   try {
+    // Check for both admin user and employee authentication
     const currentUser = await getCurrentUser()
-    if (!currentUser) {
+    const cookieStore = await cookies()
+    const employeeToken = cookieStore.get('employee_token')?.value
+
+    let employeeId = null
+
+    // Check admin user authentication
+    if (currentUser) {
+      // Find the employee record for the current user
+      const employee = await prisma.employee.findFirst({
+        where: {
+          userId: currentUser.id
+        }
+      })
+      
+      if (employee) {
+        employeeId = employee.id
+      }
+    }
+    
+    // Check employee authentication
+    if (!employeeId && employeeToken) {
+      try {
+        const decoded = jwt.verify(employeeToken, process.env.JWT_SECRET!) as {
+          id: string
+          employeeId: string
+          type: string
+        }
+
+        if (decoded.type === 'employee') {
+          employeeId = decoded.employeeId
+        }
+      } catch (error) {
+        // Invalid employee token
+      }
+    }
+
+    if (!employeeId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
-    }
-
-    // Find the employee record for the current user
-    const employee = await prisma.employee.findFirst({
-      where: {
-        userId: currentUser.id
-      }
-    })
-
-    if (!employee) {
-      return NextResponse.json({ activeShift: null })
     }
 
     // Find active shift (no end time and today's date)
@@ -29,7 +57,7 @@ export async function GET() {
     
     const activeShift = await prisma.shift.findFirst({
       where: {
-        employeeId: employee.id,
+        employeeId: employeeId,
         date: {
           gte: today,
           lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
@@ -54,7 +82,7 @@ export async function GET() {
       }
     })
 
-    return NextResponse.json({ activeShift })
+    return NextResponse.json(activeShift)
   } catch (error) {
     console.error('Failed to fetch active shift:', error)
     return NextResponse.json(

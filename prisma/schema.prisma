@@ -51,7 +51,6 @@ model Employee {
   firstName       String
   lastName        String
   email           String?   @unique
-  pin             String?    @unique
   birthday        DateTime
   sex             Sex
   socialSecurityNo String?    @unique
@@ -70,6 +69,7 @@ model Employee {
   shifts          Shift[]
   fromShiftExchanges ShiftExchange[] @relation("FromEmployee")
   toShiftExchanges   ShiftExchange[] @relation("ToEmployee")
+  availabilities  Availability[]
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 }
@@ -146,10 +146,24 @@ model SickLeave {
   employeeId  String
   startDate   DateTime
   endDate     DateTime
+  reason      String?
   document    String?
   approved    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Availability {
+  id          String   @id @default(cuid())
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  employeeId  String
+  date        DateTime
+  isAvailable Boolean  @default(true)
+  note        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([employeeId, date])
 }
 
 model WorkPlan {
@@ -205,7 +219,13 @@ model ShiftExchange {
   fromEmployeeId String
   toEmployee     Employee @relation("ToEmployee", fields: [toEmployeeId], references: [id])
   toEmployeeId   String
-  exchangedAt    DateTime @default(now())
+  status         String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  reason         String?
+  requestedAt    DateTime @default(now())
+  approvedAt     DateTime?
+  approvedBy     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model Invitation {
