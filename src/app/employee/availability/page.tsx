@@ -14,11 +14,11 @@ interface Availability {
 }
 
 export default function EmployeeAvailabilityPage() {
-  const { user } = useUser()
+  const { user, loading: userLoading } = useUser()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [availabilities, setAvailabilities] = useState<Availability[]>([])
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set())
-  const [loading, setLoading] = useState(true)
+  const [availabilityLoading, setAvailabilityLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   const currentMonth = currentDate.getMonth()
@@ -28,7 +28,7 @@ export default function EmployeeAvailabilityPage() {
     if (!user?.employee?.id) return
 
     try {
-      setLoading(true)
+      setAvailabilityLoading(true)
       const response = await fetch(
         `/api/availability?employeeId=${user.employee.id}&month=${currentMonth + 1}&year=${currentYear}`
       )
@@ -51,13 +51,15 @@ export default function EmployeeAvailabilityPage() {
         title: 'Failed to load availability data'
       })
     } finally {
-      setLoading(false)
+      setAvailabilityLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchAvailabilities()
-  }, [currentDate, user?.id])
+    if (user?.employee?.id) {
+      fetchAvailabilities()
+    }
+  }, [currentDate, user?.employee?.id])
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear()
@@ -196,7 +198,32 @@ export default function EmployeeAvailabilityPage() {
 
   const days = getDaysInMonth(currentDate)
 
-  if (loading) {
+  // Show loading if user is still loading or if we don't have user data yet
+  if (userLoading || !user) {
+    return (
+      <div className="min-h-screen bg-[#E5F1FF]">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">Loading user data...</div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error if user doesn't have employee data
+  if (!user.employee) {
+    return (
+      <div className="min-h-screen bg-[#E5F1FF]">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center text-red-600">
+            This page is only accessible to employees. Please log in with your employee PIN.
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show loading for availability data
+  if (availabilityLoading) {
     return (
       <div className="min-h-screen bg-[#E5F1FF]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

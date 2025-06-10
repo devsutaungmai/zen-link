@@ -12,7 +12,6 @@ export async function GET() {
       )
     }
 
-    // Get businessId from either user or employee
     let businessId: string
     if (auth.type === 'user') {
       businessId = auth.data.businessId

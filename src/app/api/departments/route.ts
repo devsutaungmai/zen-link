@@ -12,13 +12,11 @@ export async function GET() {
       )
     }
 
-    // Get businessId from either user or employee
     let businessId: string
     if (auth.type === 'user') {
       businessId = auth.data.businessId
     } else {
-      // For employees, get businessId from their user record
-      businessId = auth.data.user.businessId
+      businessId = auth.data.user.bussinessId
     }
     
     const departments = await prisma.department.findMany({
