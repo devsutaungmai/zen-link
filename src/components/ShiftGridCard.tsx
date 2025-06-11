@@ -1,22 +1,78 @@
 import React from "react"
+import { Shift } from '@prisma/client'
+import ShiftExchangeInfo from '@/components/ShiftExchangeInfo'
+
+// Extended Shift type to include relations
+type ShiftWithRelations = Shift & {
+  employee?: {
+    firstName: string
+    lastName: string
+    department?: {
+      name: string
+    }
+  }
+  employeeGroup?: {
+    name: string
+  }
+  shiftExchanges?: Array<{
+    id: string
+    status: string
+    fromEmployee: {
+      id: string
+      firstName: string
+      lastName: string
+      department: {
+        name: string
+      }
+    }
+    toEmployee: {
+      id: string
+      firstName: string
+      lastName: string
+      department: {
+        name: string
+      }
+    }
+  }>
+}
 
 interface ShiftGridCardProps {
-  shift: Shift
+  shift: ShiftWithRelations
   employeeId: string
+  employees?: Array<{
+    id: string
+    firstName: string
+    lastName: string
+  }>
   onApprove: (shiftId: string) => void
-  onEdit: (shift: Shift) => void
-  onDragStart: (e: React.DragEvent, shift: Shift, employeeId: string) => void
+  onEdit: (shift: ShiftWithRelations) => void
+  onDragStart: (e: React.DragEvent, shift: ShiftWithRelations, employeeId: string) => void
   onDragEnd: (e: React.DragEvent) => void
 }
 
 export default function ShiftGridCard({
   shift,
   employeeId,
+  employees = [],
   onApprove,
   onEdit,
   onDragStart,
   onDragEnd,
 }: ShiftGridCardProps) {
+  // Check if there's an approved exchange to determine the current assigned employee
+  const approvedExchange = shift.shiftExchanges?.find(exchange => exchange.status === 'APPROVED')
+  
+  // If there's an approved exchange, show the toEmployee, otherwise show the original employee
+  let currentEmployee = null
+  if (approvedExchange) {
+    currentEmployee = employees.find(e => e.id === approvedExchange.toEmployee.id) || {
+      firstName: approvedExchange.toEmployee.firstName,
+      lastName: approvedExchange.toEmployee.lastName
+    }
+  } else {
+    currentEmployee = employees.find(e => e.id === shift.employeeId) || shift.employee
+  }
+
   return (
     <div
       className={`relative rounded-lg border shadow-md bg-white px-3 py-2 text-sm transition group cursor-grab
@@ -34,6 +90,11 @@ export default function ShiftGridCard({
       <div className="font-semibold truncate">
         {shift.startTime.substring(0, 5)} - {shift.endTime ? shift.endTime.substring(0, 5) : 'Active'}
       </div>
+      {currentEmployee && (
+        <div className="text-xs mt-1 truncate font-medium">
+          {currentEmployee.firstName} {currentEmployee.lastName}
+        </div>
+      )}
       {shift.employeeGroup && (
         <div className="text-xs mt-1 opacity-75 truncate">{shift.employeeGroup.name}</div>
       )}
@@ -54,6 +115,9 @@ export default function ShiftGridCard({
           </span>
         )}
       </div>
+
+      {/* Show exchange information for approved shifts */}
+      <ShiftExchangeInfo shift={shift} />
 
       {/* Mini Actions - vertical stack */}
       <div className="absolute top-1 right-1 flex flex-col items-center space-y-1 opacity-0 group-hover:opacity-100 transition">

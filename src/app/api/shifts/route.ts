@@ -77,12 +77,46 @@ export async function GET(request: Request) {
         employee: {
           select: {
             firstName: true,
-            lastName: true
+            lastName: true,
+            department: {
+              select: {
+                name: true
+              }
+            }
           }
         },
         employeeGroup: {
           select: {
             name: true
+          }
+        },
+        shiftExchanges: {
+          where: {
+            status: 'APPROVED'
+          },
+          include: {
+            fromEmployee: {
+              select: {
+                firstName: true,
+                lastName: true,
+                department: {
+                  select: {
+                    name: true
+                  }
+                }
+              }
+            },
+            toEmployee: {
+              select: {
+                firstName: true,
+                lastName: true,
+                department: {
+                  select: {
+                    name: true
+                  }
+                }
+              }
+            }
           }
         }
       },

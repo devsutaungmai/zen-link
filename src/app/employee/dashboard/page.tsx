@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import PunchClockModal from "@/components/PunchClockModal"
+import ShiftExchangeInfo from "@/components/ShiftExchangeInfo"
 import {
   Building2,
   Clock,
@@ -50,6 +51,24 @@ interface Shift {
   department?: {
     name: string
   }
+  shiftExchanges?: Array<{
+    id: string
+    approved: boolean
+    fromEmployee: {
+      firstName: string
+      lastName: string
+      department: {
+        name: string
+      }
+    }
+    toEmployee: {
+      firstName: string
+      lastName: string
+      department: {
+        name: string
+      }
+    }
+  }>
 }
 
 const events = [
@@ -653,20 +672,42 @@ export default function EmployeeDashboard() {
                           })
                       const timeRange = `${shift.startTime.substring(0, 5)} - ${shift.endTime ? shift.endTime.substring(0, 5) : 'TBD'}`
                       
+                      // Check for approved shift exchanges
+                      const approvedExchange = shift.shiftExchanges?.find(exchange => exchange.approved)
+                      
                       return (
-                        <div key={shift.id} className="flex items-center justify-between p-3 bg-sky-50 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-sky-500 rounded-lg flex items-center justify-center text-white font-bold text-xs">
-                              {dayOfWeek}
+                        <div key={shift.id} className="p-3 bg-sky-50 rounded-lg space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 bg-sky-500 rounded-lg flex items-center justify-center text-white font-bold text-xs">
+                                {dayOfWeek}
+                              </div>
+                              <div>
+                                <p className="font-medium text-sky-700">{formattedDate}</p>
+                                <p className="text-sky-600 text-sm">{timeRange}</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium text-sky-700">{formattedDate}</p>
-                              <p className="text-sky-600 text-sm">{timeRange}</p>
+                            <div className="text-right text-sm text-sky-600">
+                              {shift.employeeGroup?.name || 'General'}
                             </div>
                           </div>
-                          <div className="text-right text-sm text-sky-600">
-                            {shift.employeeGroup?.name || 'General'}
-                          </div>
+                          
+                          {/* Show exchange information if there's an approved exchange */}
+                          {approvedExchange && (
+                            <div className="pl-15">
+                              <ShiftExchangeInfo 
+                                shift={{
+                                  id: shift.id,
+                                  approved: true,
+                                  shiftExchanges: [{
+                                    ...approvedExchange,
+                                    status: 'APPROVED' // Transform approved boolean to status string
+                                  }]
+                                }} 
+                                size="sm" 
+                              />
+                            </div>
+                          )}
                         </div>
                       )
                     })

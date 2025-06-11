@@ -1,10 +1,46 @@
 import { format } from 'date-fns'
+import { Shift, Employee } from '@prisma/client'
+import ShiftExchangeInfo from '@/components/ShiftExchangeInfo'
+
+// Extended Shift type to include relations
+type ShiftWithRelations = Shift & {
+  employee?: {
+    firstName: string
+    lastName: string
+    department?: {
+      name: string
+    }
+  }
+  employeeGroup?: {
+    name: string
+  }
+  shiftExchanges?: Array<{
+    id: string
+    status: string
+    fromEmployee: {
+      id: string
+      firstName: string
+      lastName: string
+      department: {
+        name: string
+      }
+    }
+    toEmployee: {
+      id: string
+      firstName: string
+      lastName: string
+      department: {
+        name: string
+      }
+    }
+  }>
+}
 
 interface SpanningShiftCardProps {
-  shift: Shift
+  shift: ShiftWithRelations
   date: string
   employees: Employee[]
-  onEdit: (shift: Shift) => void
+  onEdit: (shift: ShiftWithRelations) => void
   index?: number  // Position in the overlapping group
   total?: number  // Total shifts in the overlapping group
 }
@@ -18,7 +54,22 @@ export default function SpanningShiftCard({
   total = 1 
 }: SpanningShiftCardProps) {
   const { top, height } = getShiftPosition(shift.startTime, shift.endTime)
-  const employee = employees && employees.length > 0 ? employees.find(e => e.id === shift.employeeId) : null
+  
+  // Check if there's an approved exchange to determine the current assigned employee
+  const approvedExchange = shift.shiftExchanges?.find(exchange => exchange.status === 'APPROVED')
+  
+  // If there's an approved exchange, show the toEmployee, otherwise show the original employee
+  let currentEmployee = null
+  if (approvedExchange) {
+    // Find the toEmployee in the employees list
+    currentEmployee = employees?.find(e => e.id === approvedExchange.toEmployee.id) || {
+      firstName: approvedExchange.toEmployee.firstName,
+      lastName: approvedExchange.toEmployee.lastName
+    }
+  } else {
+    // Show the original assigned employee
+    currentEmployee = employees?.find(e => e.id === shift.employeeId) || shift.employee
+  }
   
   // Format end time for display - show "Active" if null
   const endTimeDisplay = shift.endTime ? shift.endTime.substring(0, 5) : 'Active'
@@ -53,7 +104,7 @@ export default function SpanningShiftCard({
         e.preventDefault()
         onEdit(shift)
       }}
-      title={`${shift.startTime.substring(0, 5)} - ${endTimeDisplay} | ${employee ? `${employee.firstName} ${employee.lastName}` : 'Unassigned'}`}
+      title={`${shift.startTime.substring(0, 5)} - ${endTimeDisplay} | ${currentEmployee ? `${currentEmployee.firstName} ${currentEmployee.lastName}` : 'Unassigned'}`}
       draggable={false}
     >
       <div className="font-medium text-sm truncate">
@@ -61,13 +112,18 @@ export default function SpanningShiftCard({
       </div>
       {height > 40 && (
         <div className="text-xs mt-1 truncate">
-          {employee ? `${employee.firstName} ${employee.lastName}` : 'Unassigned'}
+          {currentEmployee ? `${currentEmployee.firstName} ${currentEmployee.lastName}` : 'Unassigned'}
         </div>
       )}
       {height > 60 && shift.employeeGroup && (
         <div className="text-xs mt-1 opacity-75 truncate">
           {shift.employeeGroup.name}
         </div>
+      )}
+      
+      {/* Show exchange information if height allows */}
+      {height > 80 && (
+        <ShiftExchangeInfo shift={shift} />
       )}
     </div>
   )

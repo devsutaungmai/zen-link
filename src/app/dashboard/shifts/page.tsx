@@ -11,6 +11,7 @@ import {
   ClockIcon
 } from '@heroicons/react/24/outline'
 import Swal from 'sweetalert2'
+import ShiftExchangeInfo from '@/components/ShiftExchangeInfo'
 
 interface Shift {
   id: string
@@ -24,10 +25,31 @@ interface Shift {
   employee?: {
     firstName: string
     lastName: string
+    department?: {
+      name: string
+    }
   }
   employeeGroup?: {
     name: string
   }
+  shiftExchanges?: Array<{
+    id: string
+    status: string
+    fromEmployee: {
+      firstName: string
+      lastName: string
+      department: {
+        name: string
+      }
+    }
+    toEmployee: {
+      firstName: string
+      lastName: string
+      department: {
+        name: string
+      }
+    }
+  }>
 }
 
 interface EmployeeOption {
@@ -280,58 +302,68 @@ export default function ShiftsPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
                   {filteredShifts.map((shift) => (
-                    <tr key={shift.id}>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                        {new Date(shift.date).toLocaleDateString()}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {shift.startTime} - {shift.endTime}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {shift.employee ? `${shift.employee.firstName} ${shift.employee.lastName}` : '-'}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {shift.employeeGroup?.name || '-'}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {shift.shiftType}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          shift.approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {shift.approved ? 'Approved' : 'Pending'}
-                        </span>
-                      </td>
-                      <td className="relative whitespace-nowrap pl-3 pr-4 sm:pr-6 flex items-center space-x-4">
-                        <Link
-                          href={`/dashboard/shifts/${shift.id}/edit`}
-                          className="text-[#31BCFF] hover:text-[#31BCFF]/90"
-                        >
-                          <PencilIcon className="h-5 w-5 mt-3" />
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(shift.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <TrashIcon className="h-5 w-5 mt-3" />
-                        </button>
-                        <button
-                          onClick={() => handleExchange(shift)}
-                          className="text-indigo-600 hover:text-indigo-900"
-                          title="Exchange Shift"
-                        >
-                          <ArrowsRightLeftIcon className="h-5 w-5 mt-3" />
-                        </button>
-                        <button
-                          onClick={() => handleViewHistory(shift.id)}
-                          className="text-amber-600 hover:text-amber-900"
-                          title="View Exchange History"
-                        >
-                          <ClockIcon className="h-5 w-5 mt-3" />
-                        </button>
-                      </td>
-                    </tr>
+                    <React.Fragment key={shift.id}>
+                      <tr>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
+                          {new Date(shift.date).toLocaleDateString()}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {shift.startTime} - {shift.endTime}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {shift.employee ? `${shift.employee.firstName} ${shift.employee.lastName}` : '-'}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {shift.employeeGroup?.name || '-'}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {shift.shiftType}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            shift.approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {shift.approved ? 'Approved' : 'Pending'}
+                          </span>
+                        </td>
+                        <td className="relative whitespace-nowrap pl-3 pr-4 sm:pr-6 flex items-center space-x-4">
+                          <Link
+                            href={`/dashboard/shifts/${shift.id}/edit`}
+                            className="text-[#31BCFF] hover:text-[#31BCFF]/90"
+                          >
+                            <PencilIcon className="h-5 w-5 mt-3" />
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(shift.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            <TrashIcon className="h-5 w-5 mt-3" />
+                          </button>
+                          <button
+                            onClick={() => handleExchange(shift)}
+                            className="text-indigo-600 hover:text-indigo-900"
+                            title="Exchange Shift"
+                          >
+                            <ArrowsRightLeftIcon className="h-5 w-5 mt-3" />
+                          </button>
+                          <button
+                            onClick={() => handleViewHistory(shift.id)}
+                            className="text-amber-600 hover:text-amber-900"
+                            title="View Exchange History"
+                          >
+                            <ClockIcon className="h-5 w-5 mt-3" />
+                          </button>
+                        </td>
+                      </tr>
+                      {/* Show exchange information in a separate row if shift is approved and has exchanges */}
+                      {shift.approved && shift.shiftExchanges && shift.shiftExchanges.some(exchange => exchange.status === 'APPROVED') && (
+                        <tr className="bg-blue-50">
+                          <td colSpan={7} className="px-3 py-2">
+                            <ShiftExchangeInfo shift={shift} />
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
