@@ -67,38 +67,78 @@ export default function EditDepartmentPage({ params }: { params: Promise<{ id: s
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="p-4 text-gray-500">Loading...</div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#31BCFF] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading department...</p>
+        </div>
       </div>
     )
   }
 
-  if (error) {
+  if (error && !department) {
     return (
-      <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-md">
-        {error}
+      <div className="space-y-6">
+        <div className="bg-red-50/80 backdrop-blur-xl rounded-2xl p-8 border border-red-200/50 shadow-lg text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-red-900 mb-2">Error Loading Department</h3>
+          <p className="text-red-700">{error}</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="py-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-2xl font-semibold text-gray-900">Edit Department</h1>
-        
-        {error && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-md">
-            {error}
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+              Edit Department
+            </h1>
+            <p className="mt-2 text-gray-600">
+              Update department information
+            </p>
+            {department && (
+              <div className="mt-3 flex items-center text-sm text-gray-500">
+                <div className="w-2 h-2 bg-[#31BCFF] rounded-full mr-2"></div>
+                Editing: {department.name}
+              </div>
+            )}
           </div>
-        )}
-
-        <div className="mt-6">
-          <DepartmentForm 
-            initialData={department}
-            onSubmit={handleSubmit} 
-            loading={saving} 
-          />
+          <div className="hidden md:flex items-center space-x-2">
+            <div className="w-12 h-12 bg-[#31BCFF]/10 rounded-xl flex items-center justify-center">
+              <svg className="w-6 h-6 text-[#31BCFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </div>
+          </div>
         </div>
+      </div>
+      
+      {error && (
+        <div className="bg-red-50/80 backdrop-blur-xl border border-red-200/50 rounded-2xl p-4 shadow-lg">
+          <div className="flex items-center">
+            <svg className="w-5 h-5 text-red-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-red-700 font-medium">{error}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Form Container */}
+      <div className="bg-white/80 p-3 backdrop-blur-xl rounded-2xl border border-gray-200/50 shadow-lg">
+        <DepartmentForm 
+          initialData={department}
+          onSubmit={handleSubmit} 
+          loading={saving} 
+        />
       </div>
     </div>
   )

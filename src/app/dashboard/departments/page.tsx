@@ -96,102 +96,184 @@ export default function DepartmentsPage() {
     }
   }
 
+  const filteredDepartments = departments.filter(department =>
+    department.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    department.number?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
   if (loading) {
-    return <div className="flex items-center justify-center h-32">Loading...</div>
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#31BCFF]"></div>
+      </div>
+    )
   }
 
   return (
-    <>
-      <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h1 className="text-xl font-semibold text-gray-900">Departments</h1>
-          <p className="mt-2 text-sm text-gray-700">
-            A list of all departments in your organization.
-          </p>
-        </div>
-        <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+          <div className="mb-4 sm:mb-0">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+              Departments
+            </h1>
+            <p className="mt-2 text-gray-600">
+              Manage and organize your company departments
+            </p>
+            <div className="mt-4 flex items-center space-x-4 text-sm text-gray-500">
+              <span className="flex items-center">
+                <div className="w-2 h-2 bg-[#31BCFF] rounded-full mr-2"></div>
+                {departments.length} Total Departments
+              </span>
+              <span className="flex items-center">
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                {departments.reduce((sum, dept) => sum + dept._count.employees, 0)} Total Employees
+              </span>
+            </div>
+          </div>
           <Link
             href="/dashboard/departments/create"
-            className="inline-flex items-center justify-center rounded-md border border-transparent bg-[#31BCFF] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#31BCFF]/90"
+            className="inline-flex items-center justify-center px-6 py-3 rounded-2xl bg-gradient-to-r from-[#31BCFF] to-[#0EA5E9] text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 group"
           >
-            <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
+            <PlusIcon className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
             Create Department
           </Link>
         </div>
       </div>
-      
-      <div className="mt-4 flex justify-between items-center">
-        <div className="relative flex-1 max-w-xs">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+
+      {/* Search and Filters */}
+      <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 shadow-lg">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4">
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search departments..."
+              className="block w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 bg-white/70 backdrop-blur-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-[#31BCFF]/50 focus:border-[#31BCFF] transition-all duration-200"
+            />
           </div>
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search departments..."
-            className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm placeholder-gray-500 focus:border-[#31BCFF] focus:outline-none focus:ring-1 focus:ring-[#31BCFF]"
-          />
+          <div className="flex items-center text-sm text-gray-500">
+            Showing {filteredDepartments.length} of {departments.length} departments
+          </div>
         </div>
       </div>
 
-      <div className="mt-8 flex flex-col">
-        <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-            <div className="overflow-hidden shadow rounded-lg">
-              <table className="min-w-full divide-y divide-gray-300">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Name</th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Department Number</th>
-                    {/* <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">City</th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Country</th> */}
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Employees</th>
-                    <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                      <span className="sr-only">Actions</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
-                  {departments.map((department) => (
-                    <tr key={department.id}>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                        {department.name}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {department.number || '-'}
-                      </td>
-                      {/* <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {department.city}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {department.country}
-                      </td> */}
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {department._count.employees}
-                      </td>
-                      <td className="relative whitespace-nowrap pl-3 pr-4 sm:pr-6 flex items-center space-x-4">
-                        <Link
-                          href={`/dashboard/departments/${department.id}/edit`}
-                          className="text-[#31BCFF] hover:text-[#31BCFF]/90"
-                        >
-                          <PencilIcon className="h-5 w-5 mt-3" />
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(department.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <TrashIcon className="h-5 w-5 mt-3" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+      {/* Departments Grid */}
+      {filteredDepartments.length === 0 ? (
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-12 border border-gray-200/50 shadow-lg text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <MagnifyingGlassIcon className="w-8 h-8 text-gray-400" />
           </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No departments found</h3>
+          <p className="text-gray-500 mb-6">
+            {searchTerm ? 'Try adjusting your search terms' : 'Get started by creating your first department'}
+          </p>
+          {!searchTerm && (
+            <Link
+              href="/dashboard/departments/create"
+              className="inline-flex items-center px-6 py-3 rounded-xl bg-[#31BCFF] text-white font-medium hover:bg-[#31BCFF]/90 transition-colors duration-200"
+            >
+              <PlusIcon className="w-5 h-5 mr-2" />
+              Create First Department
+            </Link>
+          )}
         </div>
-      </div>
-    </>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredDepartments.map((department) => (
+            <div
+              key={department.id}
+              className="group bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] hover:border-[#31BCFF]/30"
+            >
+              {/* Department Header */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[#31BCFF] transition-colors duration-200">
+                    {department.name}
+                  </h3>
+                  {department.number && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Dept. #{department.number}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <Link
+                    href={`/dashboard/departments/${department.id}/edit`}
+                    className="p-2 text-gray-400 hover:text-[#31BCFF] hover:bg-blue-50 rounded-lg transition-all duration-200"
+                    title="Edit Department"
+                  >
+                    <PencilIcon className="h-4 w-4" />
+                  </Link>
+                  <button
+                    onClick={() => handleDelete(department.id)}
+                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                    title="Delete Department"
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Department Stats */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 mb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 bg-[#31BCFF]/10 rounded-lg flex items-center justify-center mr-3">
+                      <svg className="w-5 h-5 text-[#31BCFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {department._count.employees}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {department._count.employees === 1 ? 'Employee' : 'Employees'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Department Info */}
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center text-gray-600">
+                  <svg className="w-4 h-4 mr-2 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span className="truncate">{department.city}, {department.country}</span>
+                </div>
+                {department.phone && (
+                  <div className="flex items-center text-gray-600">
+                    <svg className="w-4 h-4 mr-2 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    <span className="truncate">{department.phone}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Actions */}
+              <div className="mt-4 pt-4 border-t border-gray-200/50">
+                <Link
+                  href={`/dashboard/departments/${department.id}/edit`}
+                  className="w-full inline-flex items-center justify-center px-4 py-2 rounded-xl bg-gray-50 text-gray-700 font-medium hover:bg-[#31BCFF] hover:text-white transition-all duration-200 group/btn"
+                >
+                  <PencilIcon className="w-4 h-4 mr-2 group-hover/btn:scale-110 transition-transform duration-200" />
+                  Edit Department
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

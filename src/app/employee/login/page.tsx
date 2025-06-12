@@ -61,14 +61,14 @@ export default function EmployeeLoginPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ backgroundColor: '#E5F1FF' }}>
       {/* Logo */}
-      <Link href="/">
+      {/* <Link href="/">
         <h1 className="text-3xl font-bold text-[#31BCFF] mb-8">{APP_NAME}</h1>
-      </Link>
+      </Link> */}
 
       {/* Main Container */}
       <div className="w-full max-w-md">
         {/* Login Form */}
-        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-md">
+        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-xl shadow-md">
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold mb-2" style={{ color: '#0369A1' }}>Zenlink</h1>
             <h2 className="text-xl font-semibold text-gray-800">Employee Sign in</h2>
@@ -88,7 +88,7 @@ export default function EmployeeLoginPage() {
               type="text"
               value={employeeId}
               onChange={(e) => setEmployeeId(e.target.value.toUpperCase())}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#31BCFF] focus:border-[#31BCFF] outline-none text-gray-900"
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-[#31BCFF] focus:border-[#31BCFF] outline-none text-gray-900"
               placeholder="EMP001"
               required
             />
@@ -125,10 +125,12 @@ export default function EmployeeLoginPage() {
           <button
             type="submit"
             disabled={loading || !employeeId || pin.length !== 6}
-            className="w-full bg-[#31BCFF] hover:bg-[#31BCFF]/90 text-white py-2 px-4 rounded-md transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full relative overflow-hidden bg-gradient-to-r from-[#31BCFF]/80 to-[#0EA5E9]/80 backdrop-blur-md border border-white/20 hover:from-[#31BCFF]/90 hover:to-[#0EA5E9]/90 text-white py-3 px-6 rounded-2xl transition-all duration-300 disabled:opacity-50 shadow-lg hover:shadow-xl before:absolute before:inset-0 before:bg-gradient-to-r before:from-white/10 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity flex items-center justify-center gap-2"
           >
-            <User className="w-4 h-4" />
-            {loading ? 'Signing in...' : 'Sign in'}
+            <User className="w-4 h-4 relative z-10" />
+            <span className="relative z-10 font-medium">
+              {loading ? 'Signing in...' : 'Sign in'}
+            </span>
           </button>
         </form>
 
