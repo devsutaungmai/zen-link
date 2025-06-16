@@ -64,3 +64,21 @@ export interface ShiftExchange {
     employeeNo?: string
   }
 }
+
+export interface PayrollPeriod {
+  id: string
+  name: string
+  startDate: string
+  endDate: string
+  status: 'DRAFT' | 'FINALIZED' | 'CLOSED'
+  businessId: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PayrollPeriodFormData {
+  name: string
+  startDate: string
+  endDate: string
+  status?: 'DRAFT' | 'FINALIZED' | 'CLOSED'
+}

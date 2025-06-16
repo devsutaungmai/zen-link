@@ -13,7 +13,8 @@ import {
   Cog6ToothIcon,
   Bars3Icon,
   XMarkIcon,
-  ClockIcon
+  ClockIcon,
+  CurrencyDollarIcon
 } from '@heroicons/react/24/outline'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@/app/lib/useUser'
@@ -51,6 +52,13 @@ const adminNavigation: NavigationItem[] = [
       { name: 'Shift', href: '/dashboard/shifts' },
       { name: 'Schedule', href: '/dashboard/schedule' },
       { name: 'Sick Leaves', href: '/dashboard/sick-leaves' },
+    ],
+  },
+  {
+    name: 'Payroll',
+    icon: CurrencyDollarIcon,
+    children: [
+      { name: 'Payroll Periods', href: '/dashboard/payroll-periods' },
     ],
   },
   { name: 'Settings', href: '/dashboard/settings', icon: Cog6ToothIcon },

@@ -38,6 +38,7 @@ model Business {
   invitations   Invitation[]
   departments   Department[]
   employeeGroups EmployeeGroup[]
+  payrollPeriods PayrollPeriod[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -241,6 +242,20 @@ model Invitation {
   updatedAt  DateTime @updatedAt
 }
 
+model PayrollPeriod {
+  id          String   @id @default(cuid())
+  name        String
+  startDate   DateTime
+  endDate     DateTime
+  status      PayrollPeriodStatus @default(DRAFT)
+  business    Business @relation(fields: [businessId], references: [id])
+  businessId  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([businessId, startDate, endDate])
+}
+
 enum Role {
   ADMIN
   HR_ADMIN
@@ -263,5 +278,11 @@ enum ShiftType {
   SICK
   TIME_OFF
   TRAINING
+}
+
+enum PayrollPeriodStatus {
+  DRAFT
+  FINALIZED
+  CLOSED
 }
 

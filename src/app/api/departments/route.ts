@@ -51,7 +51,6 @@ export async function POST(req: Request) {
     const data = await req.json()
     console.log('Request data:', data)
     
-    // Validate required fields
     if (!data.name || !data.address || !data.city || !data.phone || !data.country) {
       return NextResponse.json({ 
         error: 'Missing required fields: name, address, city, phone, country' 

@@ -46,7 +46,6 @@ export async function PUT(
     const { id } = context.params
     const rawData = await request.json()
 
-    // Validate required fields
     if (!rawData.name || !rawData.salaryCode) {
       return NextResponse.json(
         { error: 'Name and salary code are required' },
