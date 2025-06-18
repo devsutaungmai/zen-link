@@ -71,6 +71,7 @@ model Employee {
   fromShiftExchanges ShiftExchange[] @relation("FromEmployee")
   toShiftExchanges   ShiftExchange[] @relation("ToEmployee")
   availabilities  Availability[]
+  payrollEntries  PayrollEntry[]
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 }
@@ -250,10 +251,33 @@ model PayrollPeriod {
   status      PayrollPeriodStatus @default(DRAFT)
   business    Business @relation(fields: [businessId], references: [id])
   businessId  String
+  payrollEntries PayrollEntry[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@unique([businessId, startDate, endDate])
+}
+
+model PayrollEntry {
+  id               String        @id @default(cuid())
+  employee         Employee      @relation(fields: [employeeId], references: [id])
+  employeeId       String
+  payrollPeriod    PayrollPeriod @relation(fields: [payrollPeriodId], references: [id])
+  payrollPeriodId  String
+  regularHours     Float         @default(0)
+  overtimeHours    Float         @default(0)
+  regularRate      Float
+  overtimeRate     Float
+  grossPay         Float
+  deductions       Float         @default(0)
+  netPay           Float
+  bonuses          Float         @default(0)
+  status           PayrollEntryStatus @default(DRAFT)
+  notes            String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@unique([employeeId, payrollPeriodId])
 }
 
 enum Role {
@@ -284,5 +308,11 @@ enum PayrollPeriodStatus {
   DRAFT
   FINALIZED
   CLOSED
+}
+
+enum PayrollEntryStatus {
+  DRAFT
+  APPROVED
+  PAID
 }
 

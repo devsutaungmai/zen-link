@@ -82,3 +82,45 @@ export interface PayrollPeriodFormData {
   endDate: string
   status?: 'DRAFT' | 'FINALIZED' | 'CLOSED'
 }
+
+export interface PayrollEntry {
+  id: string
+  employeeId: string
+  payrollPeriodId: string
+  regularHours: number
+  overtimeHours: number
+  regularRate: number
+  overtimeRate: number
+  grossPay: number
+  deductions: number
+  netPay: number
+  bonuses: number
+  status: 'DRAFT' | 'APPROVED' | 'PAID'
+  notes?: string
+  createdAt: string
+  updatedAt: string
+  employee: {
+    id: string
+    firstName: string
+    lastName: string
+    employeeNo?: string
+    email?: string
+  }
+  payrollPeriod: {
+    id: string
+    name: string
+    startDate: string
+    endDate: string
+  }
+}
+
+export interface PayrollEntryFormData {
+  employeeId: string
+  regularHours: number
+  overtimeHours: number
+  regularRate: number
+  overtimeRate: number
+  deductions: number
+  bonuses: number
+  notes?: string
+}

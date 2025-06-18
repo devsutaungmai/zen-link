@@ -59,6 +59,7 @@ const adminNavigation: NavigationItem[] = [
     icon: CurrencyDollarIcon,
     children: [
       { name: 'Payroll Periods', href: '/dashboard/payroll-periods' },
+      { name: 'Payroll Entries', href: '/dashboard/payroll-entries' },
     ],
   },
   { name: 'Settings', href: '/dashboard/settings', icon: Cog6ToothIcon },
