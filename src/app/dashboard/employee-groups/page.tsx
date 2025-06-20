@@ -192,10 +192,10 @@ export default function EmployeeGroupsPage() {
                           {group.defaultWageType}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          THB {group.hourlyWage.toFixed(2)}
+                          $ {group.hourlyWage.toFixed(2)}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          THB {group.wagePerShift.toFixed(2)}
+                          $ {group.wagePerShift.toFixed(2)}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           {group._count.employees}

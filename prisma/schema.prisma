@@ -204,6 +204,7 @@ model Shift {
   shiftType       ShiftType
   breakStart      DateTime?   
   breakEnd        DateTime?
+  breakPaid       Boolean     @default(false)
   wage            Float
   wageType        WageType    @default(HOURLY)
   note            String?

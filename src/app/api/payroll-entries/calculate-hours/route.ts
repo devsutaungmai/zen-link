@@ -82,19 +82,32 @@ export async function POST(req: NextRequest) {
       startTime: string
       endTime: string | null
       hours: number
+      breakStart: string | null
+      breakEnd: string | null
+      breakPaid: boolean
+      breakDuration: number
     }> = []
 
     for (const shift of shifts) {
       if (shift.endTime) {
-        const hours = calculateShiftHours(shift.startTime, shift.endTime, shift.breakStart, shift.breakEnd)
+        const hours = calculateShiftHours(shift.startTime, shift.endTime, shift.breakStart, shift.breakEnd, shift.breakPaid || false)
         totalHours += hours
         totalShifts += 1
+        
+        let breakDuration = 0
+        if (shift.breakStart && shift.breakEnd) {
+          breakDuration = (shift.breakEnd.getTime() - shift.breakStart.getTime()) / (1000 * 60) // Convert to minutes
+        }
         
         shiftDetails.push({
           date: shift.date.toISOString().split('T')[0],
           startTime: shift.startTime,
           endTime: shift.endTime,
           hours: hours,
+          breakStart: shift.breakStart ? shift.breakStart.toTimeString().substring(0, 5) : null,
+          breakEnd: shift.breakEnd ? shift.breakEnd.toTimeString().substring(0, 5) : null,
+          breakPaid: shift.breakPaid || false,
+          breakDuration: Math.round(breakDuration),
         })
       }
     }
@@ -117,7 +130,33 @@ export async function POST(req: NextRequest) {
     let regularRate = 0
     let overtimeRate = 0
 
-    if (employee.employeeGroup) {
+    // Calculate average regular rate from shifts if they have wage values, otherwise use employee group
+    let totalWageFromShifts = 0
+    let shiftsWithWage = 0
+    
+    for (const shift of shifts) {
+      if (shift.wage && shift.wage > 0) {
+        if (shift.wageType === 'HOURLY') {
+          totalWageFromShifts += shift.wage
+          shiftsWithWage++
+        } else if (shift.wageType === 'PER_SHIFT') {
+          // Convert per-shift wage to hourly rate
+          const shiftHours = shiftDetails.find(detail => 
+            detail.date === shift.date.toISOString().split('T')[0]
+          )?.hours || regularHoursPerShift
+          const hourlyRate = shift.wage / (shiftHours > 0 ? shiftHours : regularHoursPerShift)
+          totalWageFromShifts += hourlyRate
+          shiftsWithWage++
+        }
+      }
+    }
+
+    if (shiftsWithWage > 0) {
+      // Use average rate from shifts that have wage values
+      regularRate = totalWageFromShifts / shiftsWithWage
+      overtimeRate = regularRate * 1.5 // 1.5x for overtime
+    } else if (employee.employeeGroup) {
+      // Fall back to employee group rates if no shift wages are available
       if (employee.employeeGroup.defaultWageType === 'HOURLY') {
         regularRate = employee.employeeGroup.hourlyWage
         overtimeRate = employee.employeeGroup.hourlyWage * 1.5 // 1.5x for overtime
@@ -135,6 +174,8 @@ export async function POST(req: NextRequest) {
       regularRate,
       overtimeRate,
       shiftDetails,
+      wageCalculationMethod: shiftsWithWage > 0 ? 'shifts' : 'employeeGroup',
+      shiftsWithWage,
       employee: {
         firstName: employee.firstName,
         lastName: employee.lastName,
@@ -160,7 +201,8 @@ function calculateShiftHours(
   startTime: string,
   endTime: string,
   breakStart: Date | null,
-  breakEnd: Date | null
+  breakEnd: Date | null,
+  breakPaid: boolean = false
 ): number {
   const getMinutes = (timeStr: string): number => {
     const [hours, minutes] = timeStr.split(':').map(Number)
@@ -177,8 +219,8 @@ function calculateShiftHours(
 
   let totalMinutes = endMinutes - startMinutes
 
-  // Subtract break time if both breakStart and breakEnd are provided
-  if (breakStart && breakEnd) {
+  // Subtract break time only if both breakStart and breakEnd are provided AND it's not a paid break
+  if (breakStart && breakEnd && !breakPaid) {
     const breakDuration = breakEnd.getTime() - breakStart.getTime()
     const breakMinutes = breakDuration / (1000 * 60) // Convert to minutes
     totalMinutes -= breakMinutes

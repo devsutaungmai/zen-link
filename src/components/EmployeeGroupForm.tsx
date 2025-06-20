@@ -44,8 +44,8 @@ export default function EmployeeGroupForm({ initialData, onSubmit, loading }: Em
   }
 
   const formatCurrency = (value: number) => {
-    // Format as THB with 2 decimal places
-    return `${value.toFixed(2)}`
+    // Format as $ with 2 decimal places
+    return `$ ${value.toFixed(2)}`
   }
 
   return (
@@ -83,7 +83,7 @@ export default function EmployeeGroupForm({ initialData, onSubmit, loading }: Em
           </label>
           <div className="relative mt-1 rounded-md shadow-sm">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <span className="text-gray-500 sm:text-sm">THB</span>
+              <span className="text-gray-500 sm:text-sm">$</span>
             </div>
             <input
               type="text"
@@ -101,7 +101,7 @@ export default function EmployeeGroupForm({ initialData, onSubmit, loading }: Em
           </label>
           <div className="relative mt-1 rounded-md shadow-sm">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <span className="text-gray-500 sm:text-sm">THB</span>
+              <span className="text-gray-500 sm:text-sm">$</span>
             </div>
             <input
               type="text"

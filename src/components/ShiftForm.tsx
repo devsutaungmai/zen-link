@@ -57,6 +57,7 @@ interface ShiftFormData {
   shiftType: ShiftType
   breakStart?: string
   breakEnd?: string
+  breakPaid?: boolean
   wage: number
   wageType: WageType
   note?: string
@@ -115,6 +116,7 @@ export default function ShiftForm({
       ...initialData,
       breakStart: convertDateTimeToTimeString(initialData.breakStart),
       breakEnd: convertDateTimeToTimeString(initialData.breakEnd),
+      breakPaid: initialData.breakPaid || false,
     } : {
       date: todayString,
       startTime: '09:00',
@@ -127,6 +129,7 @@ export default function ShiftForm({
       employeeGroupId: undefined,
       breakStart: undefined,
       breakEnd: undefined,
+      breakPaid: false,
       note: undefined,
     }
   })
@@ -480,7 +483,7 @@ export default function ShiftForm({
           {/* Wage */}
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Wage (THB) <span className="text-red-500">*</span>
+              Wage ($) <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
@@ -576,6 +579,21 @@ export default function ShiftForm({
                 <p className="mt-1 text-xs text-gray-500">Time when break period ends</p>
               </div>
 
+              {/* Paid Break */}
+              <div className="sm:col-span-2">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.breakPaid || false}
+                    onChange={(e) => setFormData({ ...formData, breakPaid: e.target.checked })}
+                    disabled={isEmployee}
+                    className={`rounded border-gray-300 text-[#31BCFF] focus:ring-[#31BCFF] ${isEmployee ? 'cursor-not-allowed' : ''}`}
+                  />
+                  <span className="text-sm text-gray-700">Paid Break</span>
+                </label>
+                <p className="mt-1 text-xs text-gray-500">Check if this break time should be included in payroll calculations</p>
+              </div>
+
               {/* Break Duration Display */}
               {formData.breakStart && formData.breakEnd && (
                 <div className="sm:col-span-2">
@@ -593,7 +611,8 @@ export default function ShiftForm({
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
             <h4 className="text-sm font-medium text-amber-800 mb-2">Break Time Guidelines</h4>
             <ul className="text-sm text-amber-700 space-y-1">
-              <li>• Break times are automatically deducted from total worked hours</li>
+              <li>• Unpaid breaks are automatically deducted from total worked hours</li>
+              <li>• Paid breaks are included in payroll calculations and not deducted from hours</li>
               <li>• Ensure break start time is after shift start time</li>
               <li>• Ensure break end time is before shift end time</li>
               <li>• Standard lunch break is typically 1 hour (12:00 - 13:00)</li>
