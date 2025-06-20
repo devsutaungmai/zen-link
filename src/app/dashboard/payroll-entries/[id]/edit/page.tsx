@@ -152,6 +152,7 @@ export default function EditPayrollEntryPage() {
             overtimeRate: payrollEntry.overtimeRate,
             deductions: payrollEntry.deductions,
             bonuses: payrollEntry.bonuses,
+            status: payrollEntry.status,
             notes: payrollEntry.notes || ''
           }}
           onSubmit={handleSubmit}

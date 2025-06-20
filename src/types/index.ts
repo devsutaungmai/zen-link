@@ -122,5 +122,6 @@ export interface PayrollEntryFormData {
   overtimeRate: number
   deductions: number
   bonuses: number
+  status?: 'DRAFT' | 'APPROVED' | 'PAID'
   notes?: string
 }

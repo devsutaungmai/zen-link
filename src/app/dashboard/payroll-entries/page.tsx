@@ -8,7 +8,8 @@ import {
   MagnifyingGlassIcon,
   PencilIcon,
   TrashIcon,
-  EyeIcon
+  EyeIcon,
+  DocumentArrowDownIcon
 } from '@heroicons/react/24/outline'
 import Swal from 'sweetalert2'
 
@@ -114,6 +115,46 @@ export default function PayrollEntriesPage() {
       await Swal.fire({
         title: 'Error!',
         text: error instanceof Error ? error.message : 'Failed to delete payroll entry.',
+        icon: 'error',
+        confirmButtonColor: '#31BCFF',
+      })
+    }
+  }
+
+  const handleExportPayslip = async (entryId: string, employeeName: string) => {
+    try {
+      const response = await fetch(`/api/payroll-entries/${entryId}/payslip`)
+
+      if (response.ok) {
+        // Get the PDF blob
+        const blob = await response.blob()
+        
+        // Create download link
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.style.display = 'none'
+        a.href = url
+        a.download = `payslip-${employeeName.replace(/\s+/g, '-').toLowerCase()}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+
+        await Swal.fire({
+          title: 'Success!',
+          text: 'Payslip PDF has been downloaded successfully.',
+          icon: 'success',
+          confirmButtonColor: '#31BCFF',
+        })
+      } else {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to generate payslip')
+      }
+    } catch (error) {
+      console.error('Error exporting payslip:', error)
+      await Swal.fire({
+        title: 'Error!',
+        text: error instanceof Error ? error.message : 'Failed to export payslip.',
         icon: 'error',
         confirmButtonColor: '#31BCFF',
       })
@@ -321,6 +362,13 @@ export default function PayrollEntriesPage() {
                         >
                           <PencilIcon className="h-4 w-4" />
                         </Link>
+                        <button
+                          onClick={() => handleExportPayslip(entry.id, `${entry.employee.firstName} ${entry.employee.lastName}`)}
+                          className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200"
+                          title="Download PDF Payslip"
+                        >
+                          <DocumentArrowDownIcon className="h-4 w-4" />
+                        </button>
                         {entry.status === 'DRAFT' && (
                           <button
                             onClick={() => handleDelete(entry.id)}

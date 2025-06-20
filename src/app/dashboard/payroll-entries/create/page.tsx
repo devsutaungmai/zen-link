@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import PayrollEntryForm from '@/components/PayrollEntryForm'
 import { PayrollEntryFormData, PayrollPeriod } from '@/types'
 
-export default function CreatePayrollEntryPage() {
+function CreatePayrollEntryContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
@@ -164,5 +164,15 @@ export default function CreatePayrollEntryPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function CreatePayrollEntryPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#31BCFF]"></div>
+    </div>}>
+      <CreatePayrollEntryContent />
+    </Suspense>
   )
 }

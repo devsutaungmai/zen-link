@@ -26,6 +26,7 @@ export default function PayrollEntryForm({
     overtimeRate: initialData?.overtimeRate || 0,
     deductions: initialData?.deductions || 0,
     bonuses: initialData?.bonuses || 0,
+    status: initialData?.status || 'DRAFT',
     notes: initialData?.notes || ''
   })
 
@@ -499,6 +500,30 @@ export default function PayrollEntryForm({
             {errors.deductions && <p className="mt-1 text-sm text-red-600">{errors.deductions}</p>}
           </div>
         </div>
+
+        {/* Status Selection - Only show in edit mode */}
+        {mode === 'edit' && (
+          <div>
+            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
+              Status
+            </label>
+            <select
+              id="status"
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="block w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white/70 backdrop-blur-sm text-gray-900 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#31BCFF]/50 focus:border-[#31BCFF] hover:border-gray-300"
+              disabled={isLoading}
+            >
+              <option value="DRAFT">Draft</option>
+              <option value="APPROVED">Approved</option>
+              <option value="PAID">Paid</option>
+            </select>
+            <p className="mt-1 text-xs text-gray-500">
+              Status determines whether the entry can be edited or processed for payment
+            </p>
+          </div>
+        )}
 
         {/* Calculation Summary */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
