@@ -196,16 +196,22 @@ export default function EmployeesPage() {
     return new Date(date).toLocaleDateString()
   }
 
-  // Show loading state
+  const filteredEmployees = employees.filter(employee =>
+    `${employee.firstName} ${employee.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    employee.employeeNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    employee.department.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (employee.employeeGroup?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    employee.mobile.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="text-center">Loading employees...</div>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#31BCFF]"></div>
       </div>
     )
   }
 
-  // Show error state
   if (error) {
     return (
       <div className="p-6">
@@ -223,147 +229,194 @@ export default function EmployeesPage() {
   }
 
   return (
-    <>
-      <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h1 className="text-xl font-semibold text-gray-900">Employees</h1>
-          <p className="mt-2 text-sm text-gray-700">
-            A list of all employees in your organization.
-          </p>
-        </div>
-        <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+          <div className="mb-4 sm:mb-0">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+              Employees
+            </h1>
+            <p className="mt-2 text-gray-600">
+              Manage your organization's employees and their information
+            </p>
+          </div>
           <Link
             href="/dashboard/employees/create"
-            className="inline-flex items-center justify-center rounded-md border border-transparent bg-[#31BCFF] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#31BCFF]/90"
+            className="inline-flex items-center justify-center px-6 py-3 rounded-2xl bg-gradient-to-r from-[#31BCFF] to-[#0EA5E9] text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 group"
           >
-            <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
+            <PlusIcon className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
             Add Employee
           </Link>
         </div>
       </div>
-      
-      <div className="mt-4 flex justify-between items-center">
-        <div className="relative flex-1 max-w-xs">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+
+      {/* Search and Filters */}
+      <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 shadow-lg">
+        <div className="flex flex-col lg:flex-row gap-4">
+          <div className="relative flex-1">
+            <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by name, employee number, department, or mobile..."
+              className="block w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 bg-white/70 backdrop-blur-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-[#31BCFF]/50 focus:border-[#31BCFF] transition-all duration-200"
+            />
           </div>
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search employees..."
-            className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm placeholder-gray-500 focus:border-[#31BCFF] focus:outline-none focus:ring-1 focus:ring-[#31BCFF]"
-          />
+        </div>
+        <div className="flex items-center justify-between mt-4 text-sm text-gray-500">
+          <span>Showing {filteredEmployees.length} of {employees.length} employees</span>
         </div>
       </div>
 
-      <div className="mt-8 flex flex-col">
-        <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-            <div className="overflow-hidden shadow rounded-lg">
-              <table className="min-w-full divide-y divide-gray-300">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Name</th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Employee No.</th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Department</th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Group</th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Mobile</th>
-                    <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                      <span className="sr-only">Actions</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
-                  {employees.map((employee) => (
-                    <tr key={employee.id}>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                        {employee.firstName} {employee.lastName}
+      {/* Employees List */}
+      {filteredEmployees.length === 0 ? (
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-12 border border-gray-200/50 shadow-lg text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <MagnifyingGlassIcon className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No employees found</h3>
+          <p className="text-gray-500 mb-6">
+            {searchTerm ? 'Try adjusting your search terms' : 'Get started by adding your first employee'}
+          </p>
+          {!searchTerm && (
+            <Link
+              href="/dashboard/employees/create"
+              className="inline-flex items-center px-6 py-3 rounded-xl bg-[#31BCFF] text-white font-medium hover:bg-[#31BCFF]/90 transition-colors duration-200"
+            >
+              <PlusIcon className="w-5 h-5 mr-2" />
+              Add First Employee
+            </Link>
+          )}
+        </div>
+      ) : (
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 shadow-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50/80">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Employee
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Employee No.
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Department
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Group
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Contact
+                  </th>
+                  <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200/50">
+                {filteredEmployees.map((employee) => (
+                  <tr key={employee.id} className="hover:bg-blue-50/30 transition-colors duration-200">
+                    <td className="px-6 py-4">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {employee.firstName} {employee.lastName}
+                        </div>
                         {employee.isTeamLeader && (
-                          <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            Team Lead
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-1">
+                            Team Leader
                           </span>
                         )}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {employee.employeeNo}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {employee.department.name}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {employee.employeeGroup?.name || '-'}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {employee.mobile}
-                      </td>
-                      <td className="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                        <div className="flex items-center justify-end space-x-2">
-                          <button
-                            onClick={() => handleInvite(employee.email || '', employee.id)}
-                            className="flex items-center text-[#31BCFF] hover:text-[#31BCFF]/90 px-2 py-1"
-                            title="Send Invite"
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">{employee.employeeNo}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">{employee.department.name}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">
+                        {employee.employeeGroup?.name || (
+                          <span className="text-gray-400 italic">No group</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">{employee.mobile}</div>
+                      {employee.email && (
+                        <div className="text-sm text-gray-500">{employee.email}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleInvite(employee.email || '', employee.id)}
+                          className="p-2 text-gray-400 hover:text-[#31BCFF] hover:bg-blue-50 rounded-lg transition-all duration-200"
+                          title="Send Invite"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={1.5}
+                            stroke="currentColor"
+                            className="w-4 h-4"
                           >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              strokeWidth={1.5}
-                              stroke="currentColor"
-                              className="w-4 h-4"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25H4.5a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
-                              />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => handleSetPin(employee.id, `${employee.firstName} ${employee.lastName}`)}
-                            className="flex items-center text-green-600 hover:text-green-700 px-2 py-1"
-                            title="Set PIN"
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25H4.5a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleSetPin(employee.id, `${employee.firstName} ${employee.lastName}`)}
+                          className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200"
+                          title="Set PIN"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={1.5}
+                            stroke="currentColor"
+                            className="w-4 h-4"
                           >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              strokeWidth={1.5}
-                              stroke="currentColor"
-                              className="w-4 h-4"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z"
-                              />
-                            </svg>
-                          </button>
-                          <Link
-                            href={`/dashboard/employees/${employee.id}/edit`}
-                            className="text-[#31BCFF] hover:text-[#31BCFF]/90 p-1"
-                            title="Edit Employee"
-                          >
-                            <PencilIcon className="h-4 w-4" />
-                          </Link>
-                          <button
-                            onClick={() => handleDelete(employee.id)}
-                            className="text-red-600 hover:text-red-900 p-1"
-                            title="Delete Employee"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z"
+                            />
+                          </svg>
+                        </button>
+                        <Link
+                          href={`/dashboard/employees/${employee.id}/edit`}
+                          className="p-2 text-gray-400 hover:text-[#31BCFF] hover:bg-blue-50 rounded-lg transition-all duration-200"
+                          title="Edit Employee"
+                        >
+                          <PencilIcon className="h-4 w-4" />
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(employee.id)}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                          title="Delete Employee"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
+      )}
 
+      {/* Modals */}
       {/* Email Invite Modal */}
       <Dialog open={showInviteModal} onOpenChange={(open) => !open && setShowInviteModal(false)}>
         <DialogContent className="max-w-md">
@@ -501,6 +554,6 @@ export default function EmployeesPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   )
 }
