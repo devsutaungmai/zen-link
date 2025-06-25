@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/app/lib/prisma'
 import jwt from 'jsonwebtoken'
+import bcrypt from 'bcryptjs'
 
 export async function POST(req: Request) {
   try {
@@ -29,7 +30,16 @@ export async function POST(req: Request) {
       },
     })
 
+    console.log('Employee login attempt:', {
+      employeeId,
+      employeeFound: !!employee,
+      hasUser: !!employee?.user,
+      hasPin: !!employee?.user?.pin,
+      pinLength: employee?.user?.pin?.length
+    })
+
     if (!employee) {
+      console.log('Employee not found for employeeNo:', employeeId)
       return NextResponse.json(
         { error: 'Invalid employee ID or PIN' },
         { status: 401 }
@@ -43,7 +53,10 @@ export async function POST(req: Request) {
       )
     }
 
-    if (employee.user.pin !== pin) {
+    // Use bcrypt to compare the PIN
+    const isPinValid = await bcrypt.compare(pin, employee.user.pin)
+    
+    if (!isPinValid) {
       return NextResponse.json(
         { error: 'Invalid employee ID or PIN' },
         { status: 401 }
@@ -78,6 +91,15 @@ export async function POST(req: Request) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: 60 * 60 * 12, // 12 hours
+      path: '/',
+      sameSite: 'strict',
+    })
+
+    // Clear any existing admin session to ensure employee session takes precedence
+    res.cookies.set('token', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 0, // Expire immediately
       path: '/',
       sameSite: 'strict',
     })

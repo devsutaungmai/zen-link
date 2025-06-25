@@ -69,17 +69,36 @@ export default function EmployeeSickLeavesPage() {
   }, [])
 
   const handleSubmit = async (formData: SickLeaveFormData) => {
+    if (!user?.employee?.id) {
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        icon: 'error',
+        title: 'Employee information not found. Please log in again.'
+      })
+      return
+    }
+
     setSubmitting(true)
     try {
       const url = editingData ? `/api/sick-leaves/${editingData.id}` : '/api/sick-leaves'
       const method = editingData ? 'PUT' : 'POST'
+      
+      // Include employee ID from user context
+      const submissionData = {
+        ...formData,
+        employeeId: user.employee.id
+      }
       
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submissionData),
       })
 
       if (!response.ok) {

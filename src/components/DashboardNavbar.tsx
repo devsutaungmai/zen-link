@@ -227,6 +227,19 @@ export default function DashboardNavbar({ setMobileMenuOpen }: DashboardNavbarPr
                       </Link>
                     )}
                   </Menu.Item>
+                  <Menu.Item>
+                    {({ active }) => (
+                      <Link
+                        href="/time-tracking"
+                        className={`${
+                          active ? 'bg-blue-50/70 text-[#31BCFF]' : 'text-gray-700'
+                        } flex items-center px-4 py-3 text-sm font-medium rounded-xl mx-2 transition-all duration-200 hover:scale-105`}
+                      >
+                        <ClockIcon className="h-4 w-4 mr-3 opacity-60" />
+                        Time Tracking Portal
+                      </Link>
+                    )}
+                  </Menu.Item>
                   <div className="border-t border-gray-200/50 mx-2 my-2" />
                   <Menu.Item>
                     {({ active }) => (

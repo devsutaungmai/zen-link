@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from "react"
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -28,9 +28,15 @@ interface Employee {
   firstName: string
   lastName: string
   employeeNo: string
-  department: string
+  department: {
+    id: string
+    name: string
+  }
   departmentId: string
-  employeeGroup?: string
+  employeeGroup?: {
+    id: string
+    name: string
+  }
   employeeGroupId?: string
 }
 
@@ -41,6 +47,7 @@ interface Shift {
   endTime: string | null
   breakStart?: string | null
   breakEnd?: string | null
+  employeeId: string
   employee: {
     firstName: string
     lastName: string
@@ -98,8 +105,11 @@ const events = [
   },
 ]
 
-export default function EmployeeDashboard() {
+function EmployeeDashboardContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const employeeId = searchParams.get('employeeId')
+  
   const [employee, setEmployee] = useState<Employee | null>(null)
   const [activeShift, setActiveShift] = useState<Shift | null>(null)
   const [todayShift, setTodayShift] = useState<Shift | null>(null)
@@ -199,20 +209,35 @@ export default function EmployeeDashboard() {
 
   const fetchEmployeeData = async () => {
     try {
-      const res = await fetch('/api/employee/me')
-      if (!res.ok) {
-        if (res.status === 401) {
-          router.push('/employee/login')
-          return
+      let employeeData;
+      
+      if (employeeId) {
+        // If coming from PIN login, fetch specific employee data
+        const res = await fetch(`/api/employees/${employeeId}`)
+        if (!res.ok) {
+          throw new Error('Failed to fetch employee data')
         }
-        throw new Error('Failed to fetch employee data')
+        employeeData = await res.json()
+        
+        // Set a temporary session for this employee (you might want to implement proper session management)
+        // For now, we'll just proceed with the employee data
+      } else {
+        // Normal employee session flow
+        const res = await fetch('/api/employee/me')
+        if (!res.ok) {
+          if (res.status === 401) {
+            router.push('/employee/login')
+            return
+          }
+          throw new Error('Failed to fetch employee data')
+        }
+        employeeData = await res.json()
       }
 
-      const employeeData = await res.json()
       setEmployee(employeeData)
 
-      // Fetch active shift
-      const activeShiftRes = await fetch('/api/shifts/active')
+      // Fetch active shift for this specific employee
+      const activeShiftRes = await fetch(`/api/shifts/active?employeeId=${employeeData.id}`)
       if (activeShiftRes.ok) {
         const activeShiftData = await activeShiftRes.json()
         setActiveShift(activeShiftData)
@@ -226,8 +251,8 @@ export default function EmployeeDashboard() {
       }
 
       // Fetch today's scheduled shift and upcoming shifts
-      await fetchTodayShift()
-      await fetchUpcomingShifts()
+      await fetchTodayShift(employeeData.id)
+      await fetchUpcomingShifts(employeeData.id)
     } catch (error) {
       console.error('Error fetching employee data:', error)
       setError('Failed to load employee data')
@@ -236,16 +261,16 @@ export default function EmployeeDashboard() {
     }
   }
 
-  const fetchTodayShift = async () => {
+  const fetchTodayShift = async (employeeId: string) => {
     try {
       const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
-      const res = await fetch(`/api/shifts?startDate=${today}&endDate=${today}`)
+      const res = await fetch(`/api/shifts?startDate=${today}&endDate=${today}&employeeId=${employeeId}`)
       
       if (res.ok) {
         const shifts = await res.json()
         // Find today's shift (could be different from active shift if pre-scheduled)
         const todayScheduledShift = shifts.find((shift: Shift) => 
-          shift.date.substring(0, 10) === today
+          shift.date.substring(0, 10) === today && shift.employeeId === employeeId
         )
         setTodayShift(todayScheduledShift || null)
       }
@@ -254,7 +279,7 @@ export default function EmployeeDashboard() {
     }
   }
 
-  const fetchUpcomingShifts = async () => {
+  const fetchUpcomingShifts = async (employeeId: string) => {
     try {
       const today = new Date()
       const nextWeek = new Date(today)
@@ -264,12 +289,14 @@ export default function EmployeeDashboard() {
       startDate.setDate(today.getDate() + 1) // Start from tomorrow
       
       const res = await fetch(
-        `/api/shifts?startDate=${startDate.toISOString().split('T')[0]}&endDate=${nextWeek.toISOString().split('T')[0]}`
+        `/api/shifts?startDate=${startDate.toISOString().split('T')[0]}&endDate=${nextWeek.toISOString().split('T')[0]}&employeeId=${employeeId}`
       )
       
       if (res.ok) {
         const shifts = await res.json()
-        setUpcomingShifts(shifts)
+        // Filter to only include shifts for this employee
+        const employeeShifts = shifts.filter((shift: Shift) => shift.employeeId === employeeId)
+        setUpcomingShifts(employeeShifts)
       }
     } catch (error) {
       console.error('Error fetching upcoming shifts:', error)
@@ -320,11 +347,15 @@ export default function EmployeeDashboard() {
       setActiveShift(newShift)
       setShowShiftModal(false)
       
-      await fetchTodayShift()
-      await fetchUpcomingShifts()
+      if (employee) {
+        await fetchTodayShift(employee.id)
+        await fetchUpcomingShifts(employee.id)
+      }
       
-      await fetchTodayShift()
-      await fetchUpcomingShifts()
+      if (employee) {
+        await fetchTodayShift(employee.id)
+        await fetchUpcomingShifts(employee.id)
+      }
     } catch (error: any) {
       setError(error.message)
     } finally {
@@ -359,8 +390,10 @@ export default function EmployeeDashboard() {
       setActiveShift(null)
       
       // Refresh today's shift data after clocking out
-      await fetchTodayShift()
-      await fetchUpcomingShifts()
+      if (employee) {
+        await fetchTodayShift(employee.id)
+        await fetchUpcomingShifts(employee.id)
+      }
     } catch (error: any) {
       setError(error.message)
     } finally {
@@ -369,8 +402,10 @@ export default function EmployeeDashboard() {
   }
 
   const handleLogout = () => {
+    // Clear both employee and admin tokens to ensure clean logout
     document.cookie = 'employee_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
-    router.push('/employee/login')
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+    router.push('/time-tracking')
   }
 
   const handleStartBreak = async () => {
@@ -571,7 +606,7 @@ export default function EmployeeDashboard() {
                     <div>
                       <h3 className="font-semibold text-sky-700">{employee.firstName} {employee.lastName}</h3>
                       <p className="text-sky-600">Employee</p>
-                      <p className="text-sky-500 text-sm">{employee.department}</p>
+                      <p className="text-sky-500 text-sm">{employee.department.name}</p>
                     </div>
                   </div>
                   <Separator />
@@ -582,12 +617,12 @@ export default function EmployeeDashboard() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sky-600">Department:</span>
-                      <span className="font-medium">{employee.department}</span>
+                      <span className="font-medium">{employee.department.name}</span>
                     </div>
                     {employee.employeeGroup && (
                       <div className="flex justify-between">
                         <span className="text-sky-600">Group:</span>
-                        <span className="font-medium">{employee.employeeGroup}</span>
+                        <span className="font-medium">{employee.employeeGroup.name}</span>
                       </div>
                     )}
                   </div>
@@ -704,7 +739,6 @@ export default function EmployeeDashboard() {
                                     status: 'APPROVED' // Transform approved boolean to status string
                                   }]
                                 }} 
-                                size="sm" 
                               />
                             </div>
                           )}
@@ -815,5 +849,34 @@ export default function EmployeeDashboard() {
         loading={clockingIn}
       />
     </div>
+  )
+}
+
+// Loading component for Suspense fallback
+function LoadingEmployeeDashboard() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ backgroundColor: '#E5F1FF' }}>
+      <div className="w-full max-w-md">
+        <div className="bg-white p-8 rounded-xl shadow-md">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold mb-2" style={{ color: '#0369A1' }}>Loading Dashboard...</h1>
+          </div>
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 bg-gray-200 rounded"></div>
+            <div className="h-10 bg-gray-200 rounded"></div>
+            <div className="h-4 bg-gray-200 rounded"></div>
+            <div className="h-32 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function EmployeeDashboard() {
+  return (
+    <Suspense fallback={<LoadingEmployeeDashboard />}>
+      <EmployeeDashboardContent />
+    </Suspense>
   )
 }

@@ -90,7 +90,7 @@ export default function LoginPage() {
             </span>
           </button>
 
-          <div className="mt-4">
+          {/* <div className="mt-4">
             <Link 
               href="/employee/login"
               className="w-full relative overflow-hidden bg-white/30 backdrop-blur-md border border-white/40 hover:bg-white/40 text-gray-700 py-3 px-6 rounded-2xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl before:absolute before:inset-0 before:bg-gradient-to-r before:from-white/20 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity"
@@ -98,7 +98,7 @@ export default function LoginPage() {
               <User className="w-4 h-4 relative z-10" />
               <span className="relative z-10 font-medium">Time Tracker Portal</span>
             </Link>
-          </div>
+          </div> */}
 
           <div className="mt-4 text-center">
             <Link 

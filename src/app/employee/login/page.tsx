@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { User } from 'lucide-react'
 import {
@@ -11,12 +11,23 @@ import {
 } from '@/components/ui/input-otp'
 import { APP_NAME } from '@/app/constants'
 
-export default function EmployeeLoginPage() {
+function EmployeeLoginContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [employeeId, setEmployeeId] = useState('')
   const [pin, setPin] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isPreFilled, setIsPreFilled] = useState(false)
+
+  // Check for pre-filled employee ID from URL params
+  useEffect(() => {
+    const preFilledEmployeeId = searchParams.get('employeeId')
+    if (preFilledEmployeeId) {
+      setEmployeeId(preFilledEmployeeId)
+      setIsPreFilled(true)
+    }
+  }, [searchParams])
 
   const handlePinInput = (value: string) => {
     setPin(value)
@@ -50,6 +61,8 @@ export default function EmployeeLoginPage() {
       if (!res.ok) {
         throw new Error(data.error || 'Login failed')
       }
+      
+      console.log('Employee login successful, redirecting to dashboard')
       router.push('/employee/dashboard')
     } catch (err: any) {
       setError(err.message)
@@ -60,10 +73,17 @@ export default function EmployeeLoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ backgroundColor: '#E5F1FF' }}>
-      {/* Logo */}
-      {/* <Link href="/">
-        <h1 className="text-3xl font-bold text-[#31BCFF] mb-8">{APP_NAME}</h1>
-      </Link> */}
+      {/* Back Button for Time Tracking Portal */}
+      {isPreFilled && (
+        <div className="w-full max-w-md mb-4">
+          <button
+            onClick={() => router.push('/time-tracking')}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+          >
+            ← Back to Time Tracking Portal
+          </button>
+        </div>
+      )}
 
       {/* Main Container */}
       <div className="w-full max-w-md">
@@ -87,11 +107,19 @@ export default function EmployeeLoginPage() {
             <input
               type="text"
               value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value.toUpperCase())}
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-[#31BCFF] focus:border-[#31BCFF] outline-none text-gray-900"
+              onChange={(e) => !isPreFilled && setEmployeeId(e.target.value.toUpperCase())}
+              className={`w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-[#31BCFF] focus:border-[#31BCFF] outline-none text-gray-900 ${
+                isPreFilled ? 'bg-gray-50 cursor-not-allowed' : ''
+              }`}
               placeholder="EMP001"
+              disabled={isPreFilled}
               required
             />
+            {isPreFilled && (
+              <p className="text-xs text-gray-500 mt-1">
+                Employee ID pre-filled from time tracking portal
+              </p>
+            )}
           </div>
 
           <div className="mb-6">
@@ -146,5 +174,40 @@ export default function EmployeeLoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Loading component for Suspense fallback
+function LoadingEmployeeLogin() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ backgroundColor: '#E5F1FF' }}>
+      <div className="w-full max-w-md">
+        <div className="bg-white p-8 rounded-xl shadow-md">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold mb-2" style={{ color: '#0369A1' }}>Zenlink</h1>
+            <h2 className="text-xl font-semibold text-gray-800">Loading...</h2>
+          </div>
+          <div className="animate-pulse">
+            <div className="h-4 bg-gray-200 rounded mb-4"></div>
+            <div className="h-10 bg-gray-200 rounded mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded mb-4"></div>
+            <div className="flex justify-center gap-2 mb-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="w-12 h-12 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+            <div className="h-12 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function EmployeeLoginPage() {
+  return (
+    <Suspense fallback={<LoadingEmployeeLogin />}>
+      <EmployeeLoginContent />
+    </Suspense>
   )
 }

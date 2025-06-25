@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/app/lib/prisma'
 import { requireAuth } from '@/lib/auth'
+import bcrypt from 'bcryptjs'
 
 export async function PATCH(
   request: Request,
@@ -38,9 +39,12 @@ export async function PATCH(
       )
     }
 
+    // Hash the PIN before storing it
+    const hashedPin = await bcrypt.hash(pin, 10)
+
     await prisma.user.update({
       where: { id: employee.userId },
-      data: { pin }
+      data: { pin: hashedPin }
     })
 
     return NextResponse.json({ 
