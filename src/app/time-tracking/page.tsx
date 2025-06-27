@@ -172,12 +172,12 @@ export default function TimeTrackingPage() {
   const filteredEmployees = employees.filter(employee => {
     const searchLower = searchTerm.toLowerCase()
     const matchesSearch = 
-      `${employee.firstName} ${employee.lastName}`.toLowerCase().includes(searchLower) ||
-      employee.employeeNo.toLowerCase().includes(searchLower) ||
-      employee.department.name.toLowerCase().includes(searchLower) ||
+      `${employee.firstName || ''} ${employee.lastName || ''}`.toLowerCase().includes(searchLower) ||
+      (employee.employeeNo || '').toLowerCase().includes(searchLower) ||
+      (employee.department?.name || '').toLowerCase().includes(searchLower) ||
       (employee.employeeGroup?.name || '').toLowerCase().includes(searchLower) ||
-      employee.mobile.toLowerCase().includes(searchLower) ||
-      employee.email.toLowerCase().includes(searchLower)
+      (employee.mobile || '').toLowerCase().includes(searchLower) ||
+      (employee.email || '').toLowerCase().includes(searchLower)
 
     if (selectedFilter === 'all') return matchesSearch
     if (selectedFilter === 'working') {
@@ -196,9 +196,9 @@ export default function TimeTrackingPage() {
   const filteredShifts = allShifts.filter(shift => {
     const searchLower = searchTerm.toLowerCase()
     return (
-      `${shift.employee.firstName} ${shift.employee.lastName}`.toLowerCase().includes(searchLower) ||
-      shift.employee.employeeNo.toLowerCase().includes(searchLower) ||
-      shift.shiftType.toLowerCase().includes(searchLower) ||
+      `${shift.employee.firstName || ''} ${shift.employee.lastName || ''}`.toLowerCase().includes(searchLower) ||
+      (shift.employee.employeeNo || '').toLowerCase().includes(searchLower) ||
+      (shift.shiftType || '').toLowerCase().includes(searchLower) ||
       (shift.employeeGroup?.name || '').toLowerCase().includes(searchLower) ||
       (shift.note || '').toLowerCase().includes(searchLower)
     )

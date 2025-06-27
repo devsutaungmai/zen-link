@@ -39,6 +39,7 @@ model Business {
   departments   Department[]
   employeeGroups EmployeeGroup[]
   payrollPeriods PayrollPeriod[]
+  attendances   Attendance[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -72,6 +73,7 @@ model Employee {
   toShiftExchanges   ShiftExchange[] @relation("ToEmployee")
   availabilities  Availability[]
   payrollEntries  PayrollEntry[]
+  attendances     Attendance[]
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 }
@@ -202,6 +204,7 @@ model Shift {
   employeeGroup   EmployeeGroup? @relation(fields: [employeeGroupId], references: [id])
   employeeGroupId String?
   shiftType       ShiftType
+  status          ShiftStatus @default(SCHEDULED)
   breakStart      DateTime?   
   breakEnd        DateTime?
   breakPaid       Boolean     @default(false)
@@ -212,6 +215,7 @@ model Shift {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   shiftExchanges  ShiftExchange[]
+  attendances     Attendance[]
 }
 
 model ShiftExchange {
@@ -315,5 +319,26 @@ enum PayrollEntryStatus {
   DRAFT
   APPROVED
   PAID
+}
+
+enum ShiftStatus {
+  SCHEDULED
+  WORKING
+  COMPLETED
+  CANCELLED
+}
+
+model Attendance {
+  id           String    @id @default(cuid())
+  employee     Employee  @relation(fields: [employeeId], references: [id])
+  employeeId   String
+  businessId   String
+  business     Business  @relation(fields: [businessId], references: [id])
+  shift        Shift?    @relation(fields: [shiftId], references: [id])
+  shiftId      String?
+  punchInTime  DateTime
+  punchOutTime DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
 

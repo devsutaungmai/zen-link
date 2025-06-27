@@ -50,8 +50,13 @@ export async function GET() {
       firstName: employee.firstName,
       lastName: employee.lastName,
       employeeNo: employee.employeeNo,
-      department: employee.department.name,
+      department: {
+        id: employee.department.id,
+        name: employee.department.name,
+        businessId: employee.department.businessId
+      },
       departmentId: employee.departmentId,
+      businessId: employee.department.businessId,
       employeeGroup: employee.employeeGroup?.name,
       employeeGroupId: employee.employeeGroupId,
     })

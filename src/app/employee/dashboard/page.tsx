@@ -28,9 +28,11 @@ interface Employee {
   firstName: string
   lastName: string
   employeeNo: string
+  businessId: string
   department: {
     id: string
     name: string
+    businessId: string
   }
   departmentId: string
   employeeGroup?: {
@@ -48,6 +50,7 @@ interface Shift {
   breakStart?: string | null
   breakEnd?: string | null
   employeeId: string
+  status: 'SCHEDULED' | 'WORKING' | 'COMPLETED' | 'CANCELLED'
   employee: {
     firstName: string
     lastName: string
@@ -76,6 +79,16 @@ interface Shift {
       }
     }
   }>
+}
+
+interface Attendance {
+  id: string
+  employeeId: string
+  businessId: string
+  shiftId?: string | null
+  punchInTime: string
+  punchOutTime?: string | null
+  shift?: Shift | null
 }
 
 const events = [
@@ -114,6 +127,7 @@ function EmployeeDashboardContent() {
   const [activeShift, setActiveShift] = useState<Shift | null>(null)
   const [todayShift, setTodayShift] = useState<Shift | null>(null)
   const [upcomingShifts, setUpcomingShifts] = useState<Shift[]>([])
+  const [currentAttendance, setCurrentAttendance] = useState<Attendance | null>(null)
   const [loading, setLoading] = useState(true)
   const [clockingIn, setClockingIn] = useState(false)
   const [clockingOut, setClockingOut] = useState(false)
@@ -253,6 +267,9 @@ function EmployeeDashboardContent() {
       // Fetch today's scheduled shift and upcoming shifts
       await fetchTodayShift(employeeData.id)
       await fetchUpcomingShifts(employeeData.id)
+      
+      // Fetch current attendance (if punched in but not out)
+      await fetchCurrentAttendance(employeeData.id)
     } catch (error) {
       console.error('Error fetching employee data:', error)
       setError('Failed to load employee data')
@@ -300,6 +317,22 @@ function EmployeeDashboardContent() {
       }
     } catch (error) {
       console.error('Error fetching upcoming shifts:', error)
+    }
+  }
+
+  const fetchCurrentAttendance = async (employeeId: string) => {
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      const res = await fetch(`/api/attendance?employeeId=${employeeId}&date=${today}`)
+      
+      if (res.ok) {
+        const attendances = await res.json()
+        // Find current attendance (punched in but not out)
+        const currentAtt = attendances.find((att: Attendance) => !att.punchOutTime)
+        setCurrentAttendance(currentAtt || null)
+      }
+    } catch (error) {
+      console.error('Error fetching current attendance:', error)
     }
   }
 
@@ -406,6 +439,83 @@ function EmployeeDashboardContent() {
     document.cookie = 'employee_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
     document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
     router.push('/time-tracking')
+  }
+
+  const handlePunchIn = async () => {
+    if (!employee) return
+
+    setClockingIn(true)
+    setError(null)
+
+    try {
+      const now = new Date()
+      const punchInData = {
+        employeeId: employee.id,
+        businessId: employee.businessId,
+        shiftId: todayShift?.id || null,
+        punchInTime: now.toISOString()
+      }
+
+      const res = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(punchInData),
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || 'Failed to punch in')
+      }
+
+      const result = await res.json()
+      setCurrentAttendance(result.attendance)
+      
+      // Update today's shift data to reflect the new status
+      if (employee) {
+        await fetchTodayShift(employee.id)
+        await fetchUpcomingShifts(employee.id)
+      }
+    } catch (error: any) {
+      setError(error.message)
+    } finally {
+      setClockingIn(false)
+    }
+  }
+
+  const handlePunchOut = async () => {
+    if (!currentAttendance) return
+
+    setClockingOut(true)
+    setError(null)
+
+    try {
+      const now = new Date()
+      const res = await fetch(`/api/attendance/${currentAttendance.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          punchOutTime: now.toISOString()
+        }),
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || 'Failed to punch out')
+      }
+
+      const result = await res.json()
+      setCurrentAttendance(null)
+      
+      // Update today's shift data to reflect the new status
+      if (employee) {
+        await fetchTodayShift(employee.id)
+        await fetchUpcomingShifts(employee.id)
+      }
+    } catch (error: any) {
+      setError(error.message)
+    } finally {
+      setClockingOut(false)
+    }
   }
 
   const handleStartBreak = async () => {
@@ -658,19 +768,76 @@ function EmployeeDashboardContent() {
                           </span>
                         </div>
                       )}
+                      
+                      {/* Shift Status Badge */}
+                      <div className="mt-3">
+                        <Badge className={`${
+                          todayShift.status === 'WORKING' ? 'bg-green-100 text-green-800' :
+                          todayShift.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' :
+                          todayShift.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {todayShift.status === 'SCHEDULED' ? 'Scheduled' :
+                           todayShift.status === 'WORKING' ? 'Working' :
+                           todayShift.status === 'COMPLETED' ? 'Completed' :
+                           todayShift.status === 'CANCELLED' ? 'Cancelled' : todayShift.status}
+                        </Badge>
+                      </div>
                     </div>
 
-                    {todayShift.endTime && (
-                      <div className="space-y-3">
-                        <h4 className="font-medium text-sky-700">Shift Status</h4>
-                        <div className="text-center p-3 bg-green-50 rounded-lg">
-                          <p className="text-green-700 font-medium">Shift Completed</p>
-                          <p className="text-green-600 text-sm">
-                            {todayShift.startTime.substring(0, 5)} - {todayShift.endTime.substring(0, 5)}
-                          </p>
+                    {/* Attendance Section */}
+                    <div className="space-y-3">
+                      <h4 className="font-medium text-sky-700">Attendance</h4>
+                      
+                      {currentAttendance ? (
+                        <div className="space-y-3">
+                          <div className="text-center p-3 bg-green-50 rounded-lg">
+                            <p className="text-green-700 font-medium">Currently Punched In</p>
+                            <p className="text-green-600 text-sm">
+                              Since: {new Date(currentAttendance.punchInTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            </p>
+                          </div>
+                          
+                          <Button
+                            onClick={handlePunchOut}
+                            disabled={clockingOut}
+                            className="w-full bg-red-500 hover:bg-red-600 text-white py-3"
+                          >
+                            <Square className="w-5 h-5 mr-2" />
+                            {clockingOut ? 'Punching Out...' : 'Punch Out'}
+                          </Button>
                         </div>
-                      </div>
-                    )}
+                      ) : (
+                        <div className="space-y-3">
+                          {todayShift.status === 'COMPLETED' ? (
+                            <div className="text-center p-3 bg-blue-50 rounded-lg">
+                              <p className="text-blue-700 font-medium">Shift Completed</p>
+                              <p className="text-blue-600 text-sm">
+                                {todayShift.startTime.substring(0, 5)} - {todayShift.endTime!.substring(0, 5)}
+                              </p>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="text-center p-3 bg-gray-50 rounded-lg">
+                                <p className="text-gray-700 font-medium">Ready to Start</p>
+                                <p className="text-gray-600 text-sm">
+                                  Tap punch in to begin your shift
+                                </p>
+                              </div>
+                              
+                              <Button
+                                onClick={handlePunchIn}
+                                disabled={clockingIn}
+                                className="w-full bg-green-500 hover:bg-green-600 text-white py-3"
+                              >
+                                <Play className="w-5 h-5 mr-2" />
+                                {clockingIn ? 'Punching In...' : 'Punch In'}
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </>
                 ) : (
                   <div className="text-center p-8 bg-gray-50 rounded-lg">
