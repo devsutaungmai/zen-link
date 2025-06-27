@@ -51,6 +51,8 @@ const adminNavigation: NavigationItem[] = [
     children: [
       { name: 'Shift', href: '/dashboard/shifts' },
       { name: 'Schedule', href: '/dashboard/schedule' },
+      { name: 'Punch Clock', href: '/dashboard/punch-clock' },
+      { name: 'Availability', href: '/dashboard/availability' },
       { name: 'Sick Leaves', href: '/dashboard/sick-leaves' },
     ],
   },

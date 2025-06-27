@@ -80,12 +80,10 @@ export async function GET(request: NextRequest) {
     const businessId = searchParams.get('businessId')
     const date = searchParams.get('date')
 
-    if (!businessId) {
-      return NextResponse.json({ error: 'Business ID is required' }, { status: 400 })
-    }
+    const whereClause: any = {}
 
-    const whereClause: any = {
-      businessId
+    if (businessId) {
+      whereClause.businessId = businessId
     }
 
     if (employeeId) {
@@ -113,6 +111,11 @@ export async function GET(request: NextRequest) {
             lastName: true,
             employeeNo: true,
             department: {
+              select: {
+                name: true
+              }
+            },
+            employeeGroup: {
               select: {
                 name: true
               }

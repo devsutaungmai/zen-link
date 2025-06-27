@@ -22,7 +22,7 @@ export default function CreateEmployeeGroupPage() {
 
       if (!res.ok) {
         const errorData = await res.json()
-        throw new Error(errorData.message || 'Failed to create employee group')
+        throw new Error(errorData.error || 'Failed to create employee group')
       }
 
       router.push('/dashboard/employee-groups')
@@ -37,7 +37,7 @@ export default function CreateEmployeeGroupPage() {
   return (
     <div className="py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-2xl font-semibold text-gray-900">Create Employee Group</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">Create New Employee Group</h1>
         
         {error && (
           <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-md">
@@ -45,7 +45,7 @@ export default function CreateEmployeeGroupPage() {
           </div>
         )}
 
-        <div className="mt-6">
+        <div className="mt-6 bg-white shadow rounded-lg p-6">
           <EmployeeGroupForm onSubmit={handleSubmit} loading={loading} />
         </div>
       </div>

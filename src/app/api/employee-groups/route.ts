@@ -14,10 +14,10 @@ export async function GET() {
 
     let businessId: string
     if (auth.type === 'user') {
-      businessId = auth.data.businessId
+      businessId = (auth.data as any).businessId
     } else {
-      // For employees, get businessId from their user record
-      businessId = auth.data.user.businessId
+      // For employees, get businessId from their department
+      businessId = (auth.data as any).department.businessId
     }
     
     const employeeGroups = await prisma.employeeGroup.findMany({
@@ -49,9 +49,9 @@ export async function POST(request: Request) {
     const user = await requireAuth()
     const data = await request.json()
     
-    if (!data.name || !data.salaryCode) {
+    if (!data.name) {
       return NextResponse.json(
-        { error: 'Name and salary code are required' },
+        { error: 'Name is required' },
         { status: 400 }
       )
     }
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
         hourlyWage: data.hourlyWage || 0,
         wagePerShift: data.wagePerShift || 0,
         defaultWageType: data.defaultWageType || 'HOURLY',
-        salaryCode: data.salaryCode,
+        salaryCode: data.salaryCode || null,
         businessId: user.businessId,
       }
     })

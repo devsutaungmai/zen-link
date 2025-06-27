@@ -89,7 +89,7 @@ model EmployeeGroup {
   hourlyWage       Float
   wagePerShift     Float
   defaultWageType  WageType     @default(HOURLY)
-  salaryCode       String       
+  salaryCode       String?      
   businessId       String
   business         Business     @relation(fields: [businessId], references: [id])
   employees        Employee[]   @relation("EmployeeToGroup")
@@ -98,7 +98,6 @@ model EmployeeGroup {
   updatedAt        DateTime     @updatedAt
 
   @@unique([name, businessId])
-  @@unique([salaryCode, businessId])
 }
 
 model Department {

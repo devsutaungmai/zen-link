@@ -11,7 +11,6 @@ interface EmployeeGroup {
   hourlyWage: number
   wagePerShift: number
   defaultWageType: string
-  salaryCode: string
   _count: {
     employees: number
   }
@@ -99,130 +98,174 @@ export default function EmployeeGroupsPage() {
 
   const filteredEmployeeGroups = employeeGroups.filter(group => 
     group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    group.salaryCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
     group.defaultWageType.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   if (loading) {
-    return <div className="flex items-center justify-center h-32">Loading...</div>
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#31BCFF]"></div>
+      </div>
+    )
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-32">
-        <div className="text-red-600">{error}</div>
-        <button 
-          onClick={fetchEmployeeGroups}
-          className="ml-4 px-4 py-2 text-sm font-medium text-white bg-[#31BCFF] rounded-md hover:bg-[#31BCFF]/90"
-        >
-          Retry
-        </button>
+      <div className="p-6">
+        <div className="text-center text-red-600">
+          Error: {error}
+          <button 
+            onClick={fetchEmployeeGroups}
+            className="ml-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     )
   }
 
   return (
-    <>
-      <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h1 className="text-xl font-semibold text-gray-900">Employee Groups</h1>
-          <p className="mt-2 text-sm text-gray-700">
-            A list of all employee groups in your organization.
-          </p>
-        </div>
-        <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+          <div className="mb-4 sm:mb-0">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+              Employee Groups
+            </h1>
+            <p className="mt-2 text-gray-600">
+              Manage employee groups and their wage settings
+            </p>
+          </div>
           <Link
             href="/dashboard/employee-groups/create"
-            className="inline-flex items-center justify-center rounded-md border border-transparent bg-[#31BCFF] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#31BCFF]/90"
+            className="inline-flex items-center justify-center px-6 py-3 rounded-2xl bg-gradient-to-r from-[#31BCFF] to-[#0EA5E9] text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 group"
           >
-            <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
+            <PlusIcon className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
             Create Employee Group
           </Link>
         </div>
       </div>
-      
-      <div className="mt-4 flex justify-between items-center">
-        <div className="relative flex-1 max-w-xs">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+
+      {/* Search and Filters */}
+      <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 shadow-lg">
+        <div className="flex flex-col lg:flex-row gap-4">
+          <div className="relative flex-1">
+            <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search employee groups..."
+              className="block w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 bg-white/70 backdrop-blur-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-[#31BCFF]/50 focus:border-[#31BCFF] transition-all duration-200"
+            />
           </div>
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search employee groups..."
-            className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm placeholder-gray-500 focus:border-[#31BCFF] focus:outline-none focus:ring-1 focus:ring-[#31BCFF]"
-          />
+        </div>
+        <div className="flex items-center justify-between mt-4 text-sm text-gray-500">
+          <span>Showing {filteredEmployeeGroups.length} of {employeeGroups.length} employee groups</span>
         </div>
       </div>
 
-      <div className="mt-8 flex flex-col">
-        <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-            <div className="overflow-hidden shadow rounded-lg">
-              {employeeGroups.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">
-                  No employee groups found. Create one to get started.
-                </div>
-              ) : (
-                <table className="min-w-full divide-y divide-gray-300">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Name</th>
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Salary Code</th>
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Wage Type</th>
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Hourly Wage</th>
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Wage/Shift</th>
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Employees</th>
-                      <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                        <span className="sr-only">Actions</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 bg-white">
-                    {filteredEmployeeGroups.map((group) => (
-                      <tr key={group.id}>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                          {group.name}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {group.salaryCode}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {group.defaultWageType}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          $ {group.hourlyWage.toFixed(2)}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          $ {group.wagePerShift.toFixed(2)}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {group._count.employees}
-                        </td>
-                        <td className="relative whitespace-nowrap pl-3 pr-4 sm:pr-6 flex items-center space-x-4">
-                          <Link
-                            href={`/dashboard/employee-groups/${group.id}/edit`}
-                            className="text-[#31BCFF] hover:text-[#31BCFF]/90"
-                          >
-                            <PencilIcon className="h-5 w-5 mt-3" />
-                          </Link>
-                          <button
-                            onClick={() => handleDelete(group.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            <TrashIcon className="h-5 w-5 mt-3" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
+      {/* Employee Groups List */}
+      {filteredEmployeeGroups.length === 0 ? (
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-12 border border-gray-200/50 shadow-lg text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <MagnifyingGlassIcon className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No employee groups found</h3>
+          <p className="text-gray-500 mb-6">
+            {searchTerm ? 'Try adjusting your search terms' : 'Get started by creating your first employee group'}
+          </p>
+          {!searchTerm && (
+            <Link
+              href="/dashboard/employee-groups/create"
+              className="inline-flex items-center px-6 py-3 rounded-xl bg-[#31BCFF] text-white font-medium hover:bg-[#31BCFF]/90 transition-colors duration-200"
+            >
+              <PlusIcon className="w-5 h-5 mr-2" />
+              Create First Group
+            </Link>
+          )}
+        </div>
+      ) : (
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 shadow-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50/80">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Group Name
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Wage Type
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Hourly Wage
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Wage/Shift
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Employees
+                  </th>
+                  <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200/50">
+                {filteredEmployeeGroups.map((group) => (
+                  <tr key={group.id} className="hover:bg-blue-50/30 transition-colors duration-200">
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-medium text-gray-900">
+                        {group.name}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {group.defaultWageType}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900 font-medium">
+                        ${group.hourlyWage}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900 font-medium">
+                        ${group.wagePerShift}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        {group._count.employees} employees
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link
+                          href={`/dashboard/employee-groups/${group.id}/edit`}
+                          className="p-2 text-gray-400 hover:text-[#31BCFF] hover:bg-blue-50 rounded-lg transition-all duration-200"
+                          title="Edit Employee Group"
+                        >
+                          <PencilIcon className="h-4 w-4" />
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(group.id)}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                          title="Delete Employee Group"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
-    </>
+      )}
+    </div>
   )
 }

@@ -46,9 +46,9 @@ export async function PUT(
     const { id } = context.params
     const rawData = await request.json()
 
-    if (!rawData.name || !rawData.salaryCode) {
+    if (!rawData.name) {
       return NextResponse.json(
-        { error: 'Name and salary code are required' },
+        { error: 'Name is required' },
         { status: 400 }
       )
     }
@@ -58,7 +58,7 @@ export async function PUT(
       hourlyWage: parseFloat(rawData.hourlyWage) || 0,
       wagePerShift: parseFloat(rawData.wagePerShift) || 0,
       defaultWageType: rawData.defaultWageType,
-      salaryCode: rawData.salaryCode,
+      salaryCode: rawData.salaryCode || null,
     }
     
     const employeeGroup = await prisma.employeeGroup.update({
@@ -82,7 +82,7 @@ export async function PUT(
     // Handle unique constraint violations
     if (error.code === 'P2002') {
       return NextResponse.json(
-        { error: 'Employee group with this name or salary code already exists' },
+        { error: 'Employee group with this name already exists' },
         { status: 400 }
       )
     }

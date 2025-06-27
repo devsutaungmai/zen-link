@@ -16,12 +16,14 @@ export async function GET(request: NextRequest) {
     const month = searchParams.get('month')
     const year = searchParams.get('year')
 
-    if (!employeeId) {
-      return NextResponse.json({ error: 'Employee ID is required' }, { status: 400 })
+    let whereClause: any = {}
+
+    // If employeeId is provided, filter by that employee
+    if (employeeId) {
+      whereClause.employeeId = employeeId
     }
 
-    let whereClause: any = { employeeId }
-
+    // Add date filter if month and year are provided
     if (month && year) {
       const startDate = new Date(parseInt(year), parseInt(month) - 1, 1)
       const endDate = new Date(parseInt(year), parseInt(month), 0)
@@ -34,6 +36,16 @@ export async function GET(request: NextRequest) {
 
     const availabilities = await prisma.availability.findMany({
       where: whereClause,
+      include: {
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            employeeNo: true
+          }
+        }
+      },
       orderBy: {
         date: 'asc'
       }

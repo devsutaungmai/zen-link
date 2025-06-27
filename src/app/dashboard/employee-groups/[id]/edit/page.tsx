@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { ChevronLeftIcon } from '@heroicons/react/24/outline'
 import EmployeeGroupForm from '@/components/EmployeeGroupForm'
-import { WageType } from '@/components/EmployeeGroupForm'
+import { WageType, EmployeeGroupFormData } from '@/components/EmployeeGroupForm'
 
 interface EmployeeGroup {
   id: string
@@ -11,7 +12,6 @@ interface EmployeeGroup {
   hourlyWage: number
   wagePerShift: number
   defaultWageType: WageType
-  salaryCode: string
 }
 
 export default function EditEmployeeGroupPage({ params }: { params: Promise<{ id: string }> }) {
@@ -39,7 +39,7 @@ export default function EditEmployeeGroupPage({ params }: { params: Promise<{ id
     fetchEmployeeGroup()
   }, [employeeGroupId])
 
-  const handleSubmit = async (formData: EmployeeGroup) => {
+  const handleSubmit = async (formData: EmployeeGroupFormData) => {
     setSaving(true)
     setError(null)
 
@@ -94,17 +94,37 @@ export default function EditEmployeeGroupPage({ params }: { params: Promise<{ id
   }
 
   return (
-    <div className="py-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-2xl font-semibold text-gray-900">Edit Employee Group</h1>
-        
-        {error && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-md">
-            {error}
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.push('/dashboard/employee-groups')}
+            className="p-2 hover:bg-white/50 rounded-xl transition-colors duration-200"
+          >
+            <ChevronLeftIcon className="w-5 h-5 text-gray-600" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+              {employeeGroup ? employeeGroup.name : 'Edit Employee Group'}
+            </h1>
+            <p className="mt-2 text-gray-600">
+              Manage employee group wage settings and configurations
+            </p>
           </div>
-        )}
+        </div>
+      </div>
 
-        <div className="mt-6">
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4">
+          {error}
+        </div>
+      )}
+
+      {/* Form Section */}
+      <div className="bg-white/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 shadow-lg">
+        <div className="p-6">
           {employeeGroup ? (
             <EmployeeGroupForm 
               initialData={employeeGroup}
@@ -112,7 +132,7 @@ export default function EditEmployeeGroupPage({ params }: { params: Promise<{ id
               loading={saving} 
             />
           ) : (
-            <div className="p-4 text-gray-500">
+            <div className="p-4 text-gray-500 text-center">
               Employee group data not available
             </div>
           )}
