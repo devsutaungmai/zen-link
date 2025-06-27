@@ -1,10 +1,8 @@
 'use server'
 
-import { PrismaClient } from '@prisma/client'
 import { verify } from 'jsonwebtoken'
 import { cookies } from 'next/headers'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/app/lib/prisma'
 
 export async function getCurrentUser() {
   const store = await cookies() 
@@ -18,10 +16,12 @@ export async function getCurrentUser() {
       role: string
     }
 
-    return await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: decoded.id },
     })
+    return user
   } catch (error) {
+    console.log('Auth debug - error:', error)
     return null
   }
 }

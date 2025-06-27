@@ -48,14 +48,18 @@ export async function POST(req: Request) {
   res.cookies.set(
     'token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Temporarily set to false for debugging
     maxAge: 60 * 60 * 24 * 7, // 7 days
     path: '/',
-    sameSite: 'strict'
+    sameSite: 'lax' // Temporarily changed from 'strict' to 'lax'
   })
 
-  console.log('Cookie set:', { token, env: process.env.NODE_ENV });
-  console.log('User logged in:', user.id, user.email);
+  console.log('Login debug - Cookie set:', { 
+    token: token.substring(0, 20) + '...', 
+    env: process.env.NODE_ENV,
+    secure: process.env.NODE_ENV === 'production'
+  });
+  console.log('Login debug - User logged in:', user.id, user.email);
   return res
 }
 

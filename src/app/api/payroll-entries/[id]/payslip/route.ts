@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/app/lib/prisma';
 import puppeteer from 'puppeteer';
-
-const prisma = new PrismaClient();
 
 function generatePayslipHTML(payrollEntry: any, business: any) {
   const periodStartDate = new Date(payrollEntry.payrollPeriod.startDate).toLocaleDateString();

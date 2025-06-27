@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { getCurrentUser } from '@/lib/auth';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/app/lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     
+    console.log('Payroll periods - user:', user ? {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      businessId: user.businessId
+    } : 'null');
+    
     if (!user) {
+      console.log('Payroll periods - user is null, returning 401');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
