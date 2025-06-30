@@ -229,7 +229,7 @@ export default function DashboardNavbar({ setMobileMenuOpen }: DashboardNavbarPr
                       </Link>
                     )}
                   </Menu.Item>
-                  <Menu.Item>
+                  {/* <Menu.Item>
                     {({ active }) => (
                       <Link
                         href="/time-tracking"
@@ -241,7 +241,7 @@ export default function DashboardNavbar({ setMobileMenuOpen }: DashboardNavbarPr
                         Time Tracking Portal
                       </Link>
                     )}
-                  </Menu.Item>
+                  </Menu.Item> */}
                   <div className="border-t border-gray-200/50 mx-2 my-2" />
                   <Menu.Item>
                     {({ active }) => (

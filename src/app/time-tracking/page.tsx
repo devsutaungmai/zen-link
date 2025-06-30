@@ -71,17 +71,40 @@ export default function TimeTrackingPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [businessName, setBusinessName] = useState<string>('')
 
   useEffect(() => {
-    fetchData()
+    const storedBusinessName = localStorage.getItem('timeTrackingBusiness')
+    const storedBusinessData = localStorage.getItem('timeTrackingBusinessData')
     
-    // Update current time every second
+    if (!storedBusinessName) {
+      router.push('/time-tracking/login')
+      return
+    }
+    
+    setBusinessName(storedBusinessName)
+
+    if (storedBusinessData) {
+      try {
+        const businessData = JSON.parse(storedBusinessData)
+        setBusiness(businessData)
+      } catch (error) {
+        console.error('Error parsing stored business data:', error)
+      }
+    }
+    
     const timeInterval = setInterval(() => {
       setCurrentTime(new Date())
     }, 1000)
 
     return () => clearInterval(timeInterval)
   }, [])
+
+  useEffect(() => {
+    if (businessName) {
+      fetchData()
+    }
+  }, [businessName])
 
   const fetchData = async () => {
     try {
@@ -101,26 +124,34 @@ export default function TimeTrackingPage() {
 
   const fetchBusiness = async () => {
     try {
+      const storedBusinessData = localStorage.getItem('timeTrackingBusinessData')
+      if (storedBusinessData) {
+        try {
+          const businessData = JSON.parse(storedBusinessData)
+          setBusiness(businessData)
+          return
+        } catch (error) {
+          console.error('Error parsing stored business data:', error)
+        }
+      }
+
       const res = await fetch('/api/business')
       if (res.ok) {
         const businessData = await res.json()
         setBusiness(businessData)
       } else {
-        // Fallback: create a business object from available data
         setBusiness({
           id: '',
-          name: 'Your Business',
+          name: businessName || 'Your Business',
           address: '',
           type: 'business',
           employeesCount: 0
         })
       }
     } catch (error) {
-      console.error('Error fetching business:', error)
-      // Fallback business data
       setBusiness({
         id: '',
-        name: 'Your Business',
+        name: businessName || 'Your Business',
         address: '',
         type: 'business',
         employeesCount: 0
@@ -130,15 +161,21 @@ export default function TimeTrackingPage() {
 
   const fetchEmployees = async () => {
     try {
-      const res = await fetch('/api/employees')
+      if (!businessName) {
+        console.error('No business name available for fetching employees')
+        return
+      }
+
+      const res = await fetch(`/api/time-tracking/employees?businessName=${encodeURIComponent(businessName)}`)
       if (res.ok) {
         const employeesData = await res.json()
         setEmployees(employeesData)
-        
-        // Update business employee count if we have business data
+
         if (business) {
           setBusiness(prev => prev ? { ...prev, employeesCount: employeesData.length } : null)
         }
+      } else {
+        console.error('Failed to fetch employees:', res.status, res.statusText)
       }
     } catch (error) {
       console.error('Error fetching employees:', error)
@@ -147,15 +184,18 @@ export default function TimeTrackingPage() {
 
   const fetchShifts = async () => {
     try {
-      // Get today's date range
+      if (!businessName) {
+        console.error('No business name available for fetching shifts')
+        return
+      }
+
       const today = new Date()
       const startDate = new Date(today)
       startDate.setHours(0, 0, 0, 0)
       const endDate = new Date(today)
       endDate.setHours(23, 59, 59, 999)
-
-      // Fetch all shifts for today
-      const res = await fetch(`/api/shifts?startDate=${startDate.toISOString().split('T')[0]}&endDate=${endDate.toISOString().split('T')[0]}`)
+      
+      const res = await fetch(`/api/time-tracking/shifts?businessName=${encodeURIComponent(businessName)}&startDate=${startDate.toISOString().split('T')[0]}&endDate=${endDate.toISOString().split('T')[0]}`)
       if (res.ok) {
         const shiftsData = await res.json()
         setAllShifts(shiftsData)
@@ -163,6 +203,8 @@ export default function TimeTrackingPage() {
         // Filter working shifts (active shifts without end time)
         const activeShifts = shiftsData.filter((shift: Shift) => !shift.endTime)
         setWorkingShifts(activeShifts)
+      } else {
+        console.error('Failed to fetch shifts:', res.status, res.statusText)
       }
     } catch (error) {
       console.error('Error fetching shifts:', error)
@@ -282,9 +324,26 @@ export default function TimeTrackingPage() {
       {/* Welcome Header - Enhanced with Business Info */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100 flex-shrink-0">
         <div className="text-center">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">
-            Welcome to {business?.name || 'Time Tracking Portal'}
-          </h1>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex-1"></div>
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">
+                Welcome to {business?.name || businessName}
+              </h1>
+            </div>
+            <div className="flex-1 flex justify-end">
+              <button
+                onClick={() => {
+                  localStorage.removeItem('timeTrackingBusiness')
+                  localStorage.removeItem('timeTrackingBusinessData')
+                  router.push('/time-tracking/login')
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-600 bg-white/80 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+              >
+                Change Business
+              </button>
+            </div>
+          </div>
           <p className="text-gray-600 text-base mb-4">
             Real-time employee tracking and management dashboard
           </p>
