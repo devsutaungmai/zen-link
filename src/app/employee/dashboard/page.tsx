@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import PunchClockModal from "@/components/PunchClockModal"
 import ShiftExchangeInfo from "@/components/ShiftExchangeInfo"
+import ShiftDetailsModal from "@/components/ShiftDetailsModal"
 import {
   Building2,
   Clock,
@@ -47,10 +48,12 @@ interface Shift {
   date: string
   startTime: string
   endTime: string | null
+  shiftType: string
   breakStart?: string | null
   breakEnd?: string | null
   employeeId: string
   status: 'SCHEDULED' | 'WORKING' | 'COMPLETED' | 'CANCELLED'
+  note?: string | null
   employee: {
     firstName: string
     lastName: string
@@ -136,9 +139,12 @@ function EmployeeDashboardContent() {
   const [isOnBreak, setIsOnBreak] = useState(false)
   const [breakLoading, setBreakLoading] = useState(false)
   const [showShiftModal, setShowShiftModal] = useState(false)
+  const [showShiftDetailsModal, setShowShiftDetailsModal] = useState(false)
+  const [selectedShiftForDetails, setSelectedShiftForDetails] = useState<Shift | null>(null)
   const [employees, setEmployees] = useState([])
   const [employeeGroups, setEmployeeGroups] = useState([])
   const [departments, setDepartments] = useState([])
+  const [pendingExchanges, setPendingExchanges] = useState<any[]>([])
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -314,9 +320,24 @@ function EmployeeDashboardContent() {
         // Filter to only include shifts for this employee
         const employeeShifts = shifts.filter((shift: Shift) => shift.employeeId === employeeId)
         setUpcomingShifts(employeeShifts)
+        
+        // Fetch pending exchanges for these shifts
+        await fetchPendingExchangesForShifts(employeeId)
       }
     } catch (error) {
       console.error('Error fetching upcoming shifts:', error)
+    }
+  }
+
+  const fetchPendingExchangesForShifts = async (employeeId: string) => {
+    try {
+      const response = await fetch(`/api/shift-exchanges?employeeId=${employeeId}&status=PENDING`)
+      if (response.ok) {
+        const exchanges = await response.json()
+        setPendingExchanges(exchanges)
+      }
+    } catch (error) {
+      console.error('Error fetching pending exchanges:', error)
     }
   }
 
@@ -431,6 +452,22 @@ function EmployeeDashboardContent() {
       setError(error.message)
     } finally {
       setClockingOut(false)
+    }
+  }
+
+  const handleShiftDetails = (shift: Shift) => {
+    setSelectedShiftForDetails(shift)
+    setShowShiftDetailsModal(true)
+  }
+
+  const handleCloseShiftDetails = async () => {
+    setShowShiftDetailsModal(false)
+    setSelectedShiftForDetails(null)
+    
+    // Refresh both pending exchanges and upcoming shifts when modal is closed
+    if (employee) {
+      await fetchPendingExchangesForShifts(employee.id)
+      await fetchUpcomingShifts(employee.id)
     }
   }
 
@@ -877,20 +914,67 @@ function EmployeeDashboardContent() {
                       // Check for approved shift exchanges
                       const approvedExchange = shift.shiftExchanges?.find(exchange => exchange.approved)
                       
+                      // Check for pending exchanges for this shift
+                      const hasPendingExchange = pendingExchanges.some(exchange => exchange.shiftId === shift.id)
+                      
+                      // Check if shift is for sale
+                      const isForSale = shift.note && shift.note.includes('[FOR SALE]')
+                      
+                      // Determine background color based on status
+                      let bgColor, hoverColor, dayBadgeColor, textColor, subtextColor, statusLabel, borderClass
+                      
+                      if (isForSale) {
+                        bgColor = 'bg-orange-50'
+                        hoverColor = 'hover:bg-orange-100'
+                        dayBadgeColor = 'bg-orange-500'
+                        textColor = 'text-orange-700'
+                        subtextColor = 'text-orange-600'
+                        statusLabel = 'For Sale'
+                        borderClass = 'border border-orange-200'
+                      } else if (hasPendingExchange) {
+                        bgColor = 'bg-yellow-50'
+                        hoverColor = 'hover:bg-yellow-100'
+                        dayBadgeColor = 'bg-yellow-500'
+                        textColor = 'text-yellow-700'
+                        subtextColor = 'text-yellow-600'
+                        statusLabel = 'Pending Exchange'
+                        borderClass = 'border border-yellow-200'
+                      } else {
+                        bgColor = 'bg-sky-50'
+                        hoverColor = 'hover:bg-sky-100'
+                        dayBadgeColor = 'bg-sky-500'
+                        textColor = 'text-sky-700'
+                        subtextColor = 'text-sky-600'
+                        statusLabel = null
+                        borderClass = ''
+                      }
+                      
                       return (
-                        <div key={shift.id} className="p-3 bg-sky-50 rounded-lg space-y-3">
+                        <div 
+                          key={shift.id} 
+                          className={`p-3 ${bgColor} rounded-lg space-y-3 cursor-pointer ${hoverColor} transition-colors ${borderClass}`}
+                          onClick={() => handleShiftDetails(shift)}
+                        >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 bg-sky-500 rounded-lg flex items-center justify-center text-white font-bold text-xs">
+                              <div className={`w-12 h-12 ${dayBadgeColor} rounded-lg flex items-center justify-center text-white font-bold text-xs`}>
                                 {dayOfWeek}
                               </div>
                               <div>
-                                <p className="font-medium text-sky-700">{formattedDate}</p>
-                                <p className="text-sky-600 text-sm">{timeRange}</p>
+                                <p className={`font-medium ${textColor}`}>{formattedDate}</p>
+                                <p className={`text-sm ${subtextColor}`}>{timeRange}</p>
+                                {statusLabel && (
+                                  <p className={`text-xs font-medium ${textColor}`}>{statusLabel}</p>
+                                )}
                               </div>
                             </div>
-                            <div className="text-right text-sm text-sky-600">
-                              {shift.employeeGroup?.name || 'General'}
+                            <div className="text-right">
+                              <div className={`text-sm ${subtextColor}`}>
+                                {shift.employeeGroup?.name || 'General'}
+                              </div>
+                              <div className={`text-xs mt-1 ${isForSale ? 'text-orange-500' : hasPendingExchange ? 'text-yellow-500' : 'text-sky-500'}`}>
+                                Click for options
+                              </div>
                             </div>
                           </div>
                           
@@ -1014,6 +1098,14 @@ function EmployeeDashboardContent() {
         departments={departments}
         onSubmit={handleShiftSubmit}
         loading={clockingIn}
+      />
+
+      {/* Shift Details Modal */}
+      <ShiftDetailsModal
+        isOpen={showShiftDetailsModal}
+        onClose={handleCloseShiftDetails}
+        shift={selectedShiftForDetails}
+        currentEmployeeId={employee?.id || ''}
       />
     </div>
   )

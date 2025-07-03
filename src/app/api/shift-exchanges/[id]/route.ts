@@ -51,3 +51,45 @@ export async function PATCH(
     )
   }
 }
+
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const params = await context.params
+
+    // Check if the exchange exists and is pending
+    const exchange = await prisma.shiftExchange.findUnique({
+      where: { id: params.id },
+      include: { fromEmployee: true }
+    })
+
+    if (!exchange) {
+      return NextResponse.json(
+        { error: 'Exchange request not found' },
+        { status: 404 }
+      )
+    }
+
+    if (exchange.status !== 'PENDING') {
+      return NextResponse.json(
+        { error: 'Can only cancel pending exchange requests' },
+        { status: 400 }
+      )
+    }
+
+    // Delete the exchange request
+    await prisma.shiftExchange.delete({
+      where: { id: params.id }
+    })
+
+    return NextResponse.json({ message: 'Exchange request cancelled successfully' })
+  } catch (error) {
+    console.error('Error cancelling shift exchange:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}

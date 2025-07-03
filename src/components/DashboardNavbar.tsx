@@ -54,6 +54,7 @@ const adminNavigation: NavigationItem[] = [
       { name: 'Punch Clock', href: '/dashboard/punch-clock' },
       { name: 'Availability', href: '/dashboard/availability' },
       { name: 'Sick Leaves', href: '/dashboard/sick-leaves' },
+      { name: 'Pending Requests', href: '/dashboard/pending-requests' },
     ],
   },
   {

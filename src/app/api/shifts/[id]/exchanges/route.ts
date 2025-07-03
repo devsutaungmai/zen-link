@@ -99,6 +99,7 @@ export async function POST(
         shiftId: params.id,
         fromEmployeeId: shift.employeeId,
         toEmployeeId,
+        type: 'SWAP',
         reason: reason || null,
         status: 'PENDING',
       },
